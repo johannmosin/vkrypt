@@ -1,0 +1,314 @@
+/* VKrypt Content Styles - Dark Theme */
+
+:root {
+  --vkrypt-bg-primary: #19191a;
+  --vkrypt-bg-secondary: #222222;
+  --vkrypt-bg-tertiary: #2d2d2d;
+  --vkrypt-text-primary: #e1e3e6;
+  --vkrypt-text-secondary: #aaaaaa;
+  --vkrypt-accent: #71aaeb;
+  --vkrypt-success: #4caf50;
+  --vkrypt-warning: #ff9800;
+  --vkrypt-error: #f44336;
+  --vkrypt-border: #363636;
+}
+
+/* Status Badge in Chat Header */
+.vkrypt-status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  margin-left: 12px;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  vertical-align: middle;
+}
+
+.vkrypt-status-badge:hover {
+  opacity: 0.85;
+}
+
+/* Encrypt Toggle Button */
+.vkrypt-encrypt-toggle {
+  background: var(--vkrypt-bg-tertiary);
+  border: 1px solid var(--vkrypt-border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 16px;
+  cursor: pointer;
+  margin-right: 8px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vkrypt-encrypt-toggle:hover {
+  background: var(--vkrypt-border);
+  transform: scale(1.05);
+}
+
+/* Key Exchange Dialog */
+.vkrypt-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999999;
+  backdrop-filter: blur(4px);
+}
+
+.vkrypt-dialog-content {
+  background: var(--vkrypt-bg-primary);
+  border: 1px solid var(--vkrypt-border);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 480px;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.vkrypt-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--vkrypt-border);
+  background: var(--vkrypt-bg-secondary);
+}
+
+.vkrypt-dialog-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--vkrypt-text-primary);
+  margin: 0;
+}
+
+.vkrypt-close-btn {
+  background: none;
+  border: none;
+  color: var(--vkrypt-text-secondary);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.vkrypt-close-btn:hover {
+  background: var(--vkrypt-border);
+  color: var(--vkrypt-text-primary);
+}
+
+.vkrypt-dialog-body {
+  padding: 20px;
+  max-height: calc(80vh - 60px);
+  overflow-y: auto;
+}
+
+.vkrypt-dialog-body p {
+  font-size: 13px;
+  color: var(--vkrypt-text-secondary);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+/* Sections in Dialog */
+.vkrypt-section {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--vkrypt-border);
+}
+
+.vkrypt-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.vkrypt-section h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--vkrypt-text-primary);
+  margin-bottom: 8px;
+}
+
+/* Textareas */
+.vkrypt-dialog textarea {
+  width: 100%;
+  min-height: 80px;
+  background: var(--vkrypt-bg-secondary);
+  border: 1px solid var(--vkrypt-border);
+  border-radius: 8px;
+  padding: 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: var(--vkrypt-text-primary);
+  resize: vertical;
+  margin-bottom: 8px;
+  word-break: break-all;
+}
+
+.vkrypt-dialog textarea:focus {
+  outline: none;
+  border-color: var(--vkrypt-accent);
+}
+
+.vkrypt-dialog textarea[readonly] {
+  opacity: 0.8;
+  cursor: default;
+}
+
+/* Hints */
+.vkrypt-hint {
+  font-size: 12px;
+  color: var(--vkrypt-text-secondary);
+  margin-bottom: 8px;
+}
+
+/* Buttons in Dialog */
+.vkrypt-btn {
+  background: var(--vkrypt-bg-tertiary);
+  color: var(--vkrypt-text-primary);
+  border: 1px solid var(--vkrypt-border);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.vkrypt-btn:hover {
+  background: var(--vkrypt-border);
+}
+
+.vkrypt-btn-primary {
+  background: var(--vkrypt-accent);
+  color: white;
+  border: none;
+}
+
+.vkrypt-btn-primary:hover {
+  background: #5a9ddb;
+}
+
+/* Status Messages */
+.vkrypt-status {
+  font-size: 12px;
+  padding: 10px;
+  border-radius: 6px;
+  margin-top: 12px;
+}
+
+.vkrypt-status.success {
+  background: rgba(76, 175, 80, 0.15);
+  color: var(--vkrypt-success);
+  border: 1px solid var(--vkrypt-success);
+}
+
+.vkrypt-status.error {
+  background: rgba(244, 67, 54, 0.15);
+  color: var(--vkrypt-error);
+  border: 1px solid var(--vkrypt-error);
+}
+
+/* Encrypted Message Indicators */
+.vkrypt-encrypted-message {
+  position: relative;
+}
+
+.vkrypt-encrypted-message::before {
+  content: '🔒';
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.vkrypt-decrypt-btn {
+  display: inline-block;
+  background: var(--vkrypt-bg-tertiary);
+  border: 1px solid var(--vkrypt-border);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--vkrypt-accent);
+  cursor: pointer;
+  margin-left: 8px;
+  transition: all 0.2s ease;
+}
+
+.vkrypt-decrypt-btn:hover {
+  background: var(--vkrypt-border);
+}
+
+.vkrypt-decrypted {
+  color: var(--vkrypt-success);
+}
+
+/* Scrollbar in Dialog */
+.vkrypt-dialog-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.vkrypt-dialog-body::-webkit-scrollbar-track {
+  background: var(--vkrypt-bg-primary);
+}
+
+.vkrypt-dialog-body::-webkit-scrollbar-thumb {
+  background: var(--vkrypt-border);
+  border-radius: 3px;
+}
+
+.vkrypt-dialog-body::-webkit-scrollbar-thumb:hover {
+  background: var(--vkrypt-text-secondary);
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 768px) {
+  .vkrypt-dialog-content {
+    width: 95%;
+    max-width: none;
+  }
+  
+  .vkrypt-status-badge {
+    padding: 3px 8px;
+    font-size: 10px;
+  }
+  
+  .vkrypt-encrypt-toggle {
+    padding: 4px 8px;
+    font-size: 14px;
+  }
+}
+
+/* Animation for new encrypted messages */
+@keyframes vkrypt-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.vkrypt-encrypted-message {
+  animation: vkrypt-fade-in 0.3s ease;
+}

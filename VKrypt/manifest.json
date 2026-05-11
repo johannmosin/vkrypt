@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "VK E2EE Messenger",
+  "name": "VKrypt",
   "version": "1.0.0",
-  "description": "End-to-End Encryption for VKontakte messages with external key exchange",
+  "description": "End-to-end encryption for VK messages with external key exchange",
   "permissions": [
     "storage",
     "activeTab"
@@ -12,37 +12,38 @@
     "*://*.vk.com/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "scripts": ["background.js"]
   },
   "content_scripts": [
     {
       "matches": ["*://vk.com/*", "*://*.vk.com/*"],
-      "js": ["crypto.js", "content.js"],
-      "css": ["styles.css"],
-      "run_at": "document_idle"
+      "js": ["content.js"],
+      "css": ["styles.css"]
     }
   ],
   "action": {
     "default_popup": "popup.html",
+    "default_title": "VKrypt - E2EE for VK",
     "default_icon": {
       "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
-    },
-    "default_title": "VK E2EE Settings"
+    }
   },
   "icons": {
     "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "vk-e2ee@example.com",
+      "id": "vkrypt@extension",
       "strict_min_version": "109.0"
     },
     "gecko_android": {
-      "strict_min_version": "113.0"
+      "strict_min_version": "109.0"
     }
   }
 }
