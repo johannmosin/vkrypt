@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VKrypt</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="vkrypt-popup">
+    <header class="vkrypt-header">
+      <h1>🔐 VKrypt</h1>
+      <p class="vkrypt-subtitle">E2EE for VK Messages</p>
+    </header>
+
+    <main class="vkrypt-main">
+      <!-- Key Status Section -->
+      <section class="vkrypt-section">
+        <h2>Your Keys</h2>
+        <div id="key-status" class="vkrypt-status-card">
+          <div class="vkrypt-loading">Loading...</div>
+        </div>
+        
+        <button id="generate-keys-btn" class="vkrypt-btn vkrypt-btn-primary" style="display: none;">
+          🔑 Generate Key Pair
+        </button>
+      </section>
+
+      <!-- Current Chat Status -->
+      <section class="vkrypt-section">
+        <h2>Current Chat</h2>
+        <div id="chat-status" class="vkrypt-status-card">
+          <div class="vkrypt-loading">Detecting chat...</div>
+        </div>
+        
+        <button id="key-exchange-btn" class="vkrypt-btn" style="display: none;">
+          🔄 Exchange Keys
+        </button>
+      </section>
+
+      <!-- Group Management -->
+      <section class="vkrypt-section" id="group-section" style="display: none;">
+        <h2>Group Keys</h2>
+        <p class="vkrypt-hint">Manage keys for group members</p>
+        <div id="group-members" class="vkrypt-group-list"></div>
+        <button id="add-member-btn" class="vkrypt-btn vkrypt-btn-small">
+          ➕ Add Member
+        </button>
+      </section>
+
+      <!-- Settings -->
+      <section class="vkrypt-section">
+        <h2>Settings</h2>
+        <label class="vkrypt-setting">
+          <input type="checkbox" id="auto-encrypt" checked>
+          <span>Auto-encrypt when key available</span>
+        </label>
+        <label class="vkrypt-setting">
+          <input type="checkbox" id="show-markers" checked>
+          <span>Show encryption markers</span>
+        </label>
+      </section>
+
+      <!-- Info -->
+      <section class="vkrypt-section vkrypt-info">
+        <h3>ℹ️ How it works</h3>
+        <ol>
+          <li>Generate your key pair</li>
+          <li>Share your public key with contacts (outside VK)</li>
+          <li>Add their public keys to enable encryption</li>
+          <li>Messages are encrypted with AES-256-GCM</li>
+        </ol>
+        <p class="vkrypt-warning">
+          ⚠️ Keep your private key secure! Never share it.
+        </p>
+      </section>
+    </main>
+
+    <footer class="vkrypt-footer">
+      <span>VKrypt v1.0.0</span>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
