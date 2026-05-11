@@ -1,59 +1,47 @@
 {
-  "extensionDescription": {
-    "message": "VKrypt - Сквозное шифрование для ВКонтакте",
-    "description": "Описание расширения"
-  },
   "extensionName": {
     "message": "VKrypt",
     "description": "Название расширения"
   },
+  "extensionDescription": {
+    "message": "Шифрование сообщений ВКонтакте с использованием сквозного шифрования (E2EE)",
+    "description": "Описание расширения"
+  },
   "statusActive": {
     "message": "🔒 Шифрование активно",
-    "description": "Статус когда шифрование активно"
+    "description": "Статус: шифрование активно"
   },
   "statusInactive": {
-    "message": "⚠️ Нужны ключи",
-    "description": "Статус когда нужны ключи"
+    "message": "⚠️ Ключи не настроены",
+    "description": "Статус: ключи не настроены"
   },
   "statusDisabled": {
-    "message": "🔓 Отключено",
-    "description": "Статус когда шифрование отключено"
+    "message": "🔓 Шифрование отключено",
+    "description": "Статус: шифрование отключено"
   },
   "generateKeys": {
     "message": "Сгенерировать ключи",
     "description": "Кнопка генерации ключей"
   },
-  "generating": {
-    "message": "Генерация...",
-    "description": "Статус генерации ключей"
-  },
-  "generateKeyError": {
-    "message": "Не удалось сгенерировать ключи",
-    "description": "Ошибка генерации ключей"
-  },
-  "error": {
-    "message": "Ошибка",
-    "description": "Общая ошибка"
-  },
   "exportPublicKey": {
-    "message": "Экспорт открытого ключа",
-    "description": "Кнопка экспорта ключа"
+    "message": "Экспорт публичного ключа",
+    "description": "Экспорт публичного ключа"
   },
   "importContactKey": {
     "message": "Импорт ключа контакта",
-    "description": "Кнопка импорта ключа"
+    "description": "Импорт публичного ключа контакта"
   },
   "yourPublicKey": {
-    "message": "Ваш открытый ключ:",
-    "description": "Метка вашего открытого ключа"
+    "message": "Ваш публичный ключ:",
+    "description": "Заголовок вашего публичного ключа"
   },
   "contactPublicKey": {
-    "message": "Открытый ключ контакта:",
-    "description": "Метка открытого ключа контакта"
+    "message": "Публичный ключ контакта:",
+    "description": "Заголовок публичного ключа контакта"
   },
   "contactName": {
     "message": "Имя контакта:",
-    "description": "Метка имени контакта"
+    "description": "Поле имени контакта"
   },
   "save": {
     "message": "Сохранить",
@@ -65,74 +53,50 @@
   },
   "keysReady": {
     "message": "✅ Ключи готовы",
-    "description": "Статус готовности ключей"
+    "description": "Статус: ключи готовы"
   },
   "keysNotGenerated": {
     "message": "❌ Ключи не сгенерированы",
-    "description": "Статус когда ключи не сгенерированы"
+    "description": "Статус: ключи не сгенерированы"
   },
   "copyToClipboard": {
     "message": "Копировать",
-    "description": "Кнопка копирования"
+    "description": "Кнопка копирования в буфер обмена"
   },
   "copied": {
     "message": "Скопировано!",
-    "description": "Уведомление о копировании"
+    "description": "Сообщение о копировании"
   },
   "pasteFromClipboard": {
     "message": "Вставить",
-    "description": "Кнопка вставки"
-  },
-  "pasteError": {
-    "message": "Не удалось вставить из буфера обмена",
-    "description": "Ошибка вставки"
-  },
-  "enterPublicKey": {
-    "message": "Введите открытый ключ",
-    "description": "Подсказка ввести ключ"
-  },
-  "unusualKeyFormat": {
-    "message": "Формат ключа выглядит необычно. Продолжить?",
-    "description": "Предупреждение о формате ключа"
-  },
-  "contactKeySaved": {
-    "message": "Ключ контакта сохранён!",
-    "description": "Ключ сохранён успешно"
-  },
-  "saveKeyError": {
-    "message": "Не удалось сохранить ключ",
-    "description": "Ошибка сохранения ключа"
-  },
-  "noContacts": {
-    "message": "Контакты не добавлены",
-    "description": "Нет контактов"
+    "description": "Кнопка вставки из буфера обмена"
   },
   "encryptedMessage": {
-    "message": "🔒 Зашифровано",
-    "description": "Метка зашифрованного сообщения"
+    "message": "🔒 Зашифрованное сообщение",
+    "description": "Маркер зашифрованного сообщения"
   },
   "unencryptedMessage": {
-    "message": "📄 Обычное сообщение",
-    "description": "Метка обычного сообщения"
+    "message": "Обычное сообщение",
+    "description": "Маркер обычного сообщения"
   },
   "sendEncrypted": {
-    "message": "Отправить зашифрованное",
-    "description": "Кнопка отправки зашифрованного"
+    "message": "Отправить зашифрованно",
+    "description": "Кнопка отправки зашифрованного сообщения"
   },
   "encryptionToggle": {
-    "message": "Шифрование",
+    "message": "Включить шифрование",
     "description": "Переключатель шифрования"
   },
   "settings": {
     "message": "Настройки",
-    "description": "Раздел настроек"
+    "description": "Заголовок настроек"
   },
   "language": {
     "message": "Язык",
     "description": "Настройка языка"
   },
   "autoLanguage": {
-    "message": "Авто (как VK)",
+    "message": "Авто (как в VK)",
     "description": "Автоматический выбор языка"
   },
   "russian": {
@@ -145,7 +109,7 @@
   },
   "groupParticipants": {
     "message": "Участники группы:",
-    "description": "Список участников группы"
+    "description": "Заголовок участников группы"
   },
   "addParticipant": {
     "message": "Добавить участника",
@@ -157,18 +121,46 @@
   },
   "noChatDetected": {
     "message": "Чат не обнаружен",
-    "description": "Статус когда чат не обнаружен"
+    "description": "Статус: чат не обнаружен"
   },
   "chatDetected": {
-    "message": "Чат: ",
-    "description": "Метка обнаруженного чата"
+    "message": "✅ Чат обнаружен",
+    "description": "Статус: чат обнаружен"
   },
   "personalChat": {
     "message": "Личный чат",
-    "description": "Тип чата - личный"
+    "description": "Тип чата: личный"
   },
   "groupChat": {
     "message": "Групповой чат",
-    "description": "Тип чата - групповой"
+    "description": "Тип чата: групповой"
+  },
+  "generatingKeys": {
+    "message": "Генерация ключей...",
+    "description": "Статус: генерация ключей"
+  },
+  "keysGeneratedSuccess": {
+    "message": "✅ Ключи успешно сгенерированы!",
+    "description": "Сообщение об успешной генерации ключей"
+  },
+  "keysGenerationError": {
+    "message": "❌ Ошибка генерации ключей",
+    "description": "Сообщение об ошибке генерации ключей"
+  },
+  "enterContactName": {
+    "message": "Введите имя контакта",
+    "description": "Подсказка для имени контакта"
+  },
+  "enterPublicKey": {
+    "message": "Вставьте публичный ключ контакта",
+    "description": "Подсказка для публичного ключа"
+  },
+  "invalidKeyFormat": {
+    "message": "❌ Неверный формат ключа",
+    "description": "Ошибка формата ключа"
+  },
+  "keySaved": {
+    "message": "✅ Ключ сохранён",
+    "description": "Сообщение о сохранении ключа"
   }
 }
