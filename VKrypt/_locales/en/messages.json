@@ -1,59 +1,47 @@
 {
-  "extensionDescription": {
-    "message": "VKrypt - End-to-End Encryption for VKontakte",
-    "description": "Extension description"
-  },
   "extensionName": {
     "message": "VKrypt",
     "description": "Extension name"
   },
+  "extensionDescription": {
+    "message": "End-to-end encrypted messaging for VKontakte (E2EE)",
+    "description": "Extension description"
+  },
   "statusActive": {
-    "message": "🔒 Encryption Active",
-    "description": "Status when encryption is active"
+    "message": "🔒 Encryption active",
+    "description": "Status: encryption active"
   },
   "statusInactive": {
-    "message": "⚠️ Keys Needed",
-    "description": "Status when keys are needed"
+    "message": "⚠️ Keys not configured",
+    "description": "Status: keys not configured"
   },
   "statusDisabled": {
-    "message": "🔓 Disabled",
-    "description": "Status when encryption is disabled"
+    "message": "🔓 Encryption disabled",
+    "description": "Status: encryption disabled"
   },
   "generateKeys": {
     "message": "Generate Keys",
-    "description": "Button to generate keys"
-  },
-  "generating": {
-    "message": "Generating...",
-    "description": "Key generation status"
-  },
-  "generateKeyError": {
-    "message": "Failed to generate keys",
-    "description": "Key generation error"
-  },
-  "error": {
-    "message": "Error",
-    "description": "General error"
+    "description": "Generate keys button"
   },
   "exportPublicKey": {
     "message": "Export Public Key",
-    "description": "Button to export public key"
+    "description": "Export public key"
   },
   "importContactKey": {
     "message": "Import Contact Key",
-    "description": "Button to import contact key"
+    "description": "Import contact public key"
   },
   "yourPublicKey": {
     "message": "Your Public Key:",
-    "description": "Label for your public key"
+    "description": "Your public key header"
   },
   "contactPublicKey": {
     "message": "Contact Public Key:",
-    "description": "Label for contact public key"
+    "description": "Contact public key header"
   },
   "contactName": {
     "message": "Contact Name:",
-    "description": "Label for contact name"
+    "description": "Contact name field"
   },
   "save": {
     "message": "Save",
@@ -65,67 +53,43 @@
   },
   "keysReady": {
     "message": "✅ Keys Ready",
-    "description": "Status when keys are ready"
+    "description": "Status: keys ready"
   },
   "keysNotGenerated": {
     "message": "❌ Keys Not Generated",
-    "description": "Status when keys are not generated"
+    "description": "Status: keys not generated"
   },
   "copyToClipboard": {
     "message": "Copy",
-    "description": "Copy button"
+    "description": "Copy to clipboard button"
   },
   "copied": {
     "message": "Copied!",
-    "description": "Copied notification"
+    "description": "Copied message"
   },
   "pasteFromClipboard": {
     "message": "Paste",
-    "description": "Paste button"
-  },
-  "pasteError": {
-    "message": "Failed to paste from clipboard",
-    "description": "Paste error"
-  },
-  "enterPublicKey": {
-    "message": "Please enter a public key",
-    "description": "Enter public key prompt"
-  },
-  "unusualKeyFormat": {
-    "message": "This key format looks unusual. Continue anyway?",
-    "description": "Unusual key format warning"
-  },
-  "contactKeySaved": {
-    "message": "Contact key saved!",
-    "description": "Contact key saved successfully"
-  },
-  "saveKeyError": {
-    "message": "Failed to save key",
-    "description": "Save key error"
-  },
-  "noContacts": {
-    "message": "No contacts added",
-    "description": "No contacts"
+    "description": "Paste from clipboard button"
   },
   "encryptedMessage": {
-    "message": "🔒 Encrypted",
-    "description": "Encrypted message label"
+    "message": "🔒 Encrypted Message",
+    "description": "Encrypted message marker"
   },
   "unencryptedMessage": {
-    "message": "📄 Plain Message",
-    "description": "Plain message label"
+    "message": "Unencrypted Message",
+    "description": "Unencrypted message marker"
   },
   "sendEncrypted": {
     "message": "Send Encrypted",
     "description": "Send encrypted button"
   },
   "encryptionToggle": {
-    "message": "Encryption",
+    "message": "Enable Encryption",
     "description": "Encryption toggle"
   },
   "settings": {
     "message": "Settings",
-    "description": "Settings section"
+    "description": "Settings header"
   },
   "language": {
     "message": "Language",
@@ -145,7 +109,7 @@
   },
   "groupParticipants": {
     "message": "Group Participants:",
-    "description": "Group participants list"
+    "description": "Group participants header"
   },
   "addParticipant": {
     "message": "Add Participant",
@@ -157,18 +121,46 @@
   },
   "noChatDetected": {
     "message": "No chat detected",
-    "description": "Status when no chat is detected"
+    "description": "Status: no chat detected"
   },
   "chatDetected": {
-    "message": "Chat: ",
-    "description": "Detected chat label"
+    "message": "✅ Chat detected",
+    "description": "Status: chat detected"
   },
   "personalChat": {
     "message": "Personal Chat",
-    "description": "Personal chat type"
+    "description": "Chat type: personal"
   },
   "groupChat": {
     "message": "Group Chat",
-    "description": "Group chat type"
+    "description": "Chat type: group"
+  },
+  "generatingKeys": {
+    "message": "Generating keys...",
+    "description": "Status: generating keys"
+  },
+  "keysGeneratedSuccess": {
+    "message": "✅ Keys generated successfully!",
+    "description": "Keys generated success message"
+  },
+  "keysGenerationError": {
+    "message": "❌ Key generation error",
+    "description": "Key generation error message"
+  },
+  "enterContactName": {
+    "message": "Enter contact name",
+    "description": "Contact name placeholder"
+  },
+  "enterPublicKey": {
+    "message": "Paste contact public key",
+    "description": "Public key placeholder"
+  },
+  "invalidKeyFormat": {
+    "message": "❌ Invalid key format",
+    "description": "Invalid key format error"
+  },
+  "keySaved": {
+    "message": "✅ Key saved",
+    "description": "Key saved message"
   }
 }

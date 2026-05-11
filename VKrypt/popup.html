@@ -8,79 +8,73 @@
 </head>
 <body>
   <div class="container">
-    <header class="header">
-      <h1>🔐 VKrypt</h1>
-      <p class="subtitle" data-i18n="extensionDescription">Сквозное шифрование для ВКонтакте</p>
+    <header>
+      <h1 data-i18n="extensionName">VKrypt</h1>
+      <div id="status" class="status status-inactive">
+        <span data-i18n="statusInactive">⚠️ Ключи не настроены</span>
+      </div>
     </header>
 
-    <div id="status-section" class="section">
-      <div id="status-indicator" class="status-indicator">
-        <span class="status-icon">⚠️</span>
-        <span class="status-text" data-i18n="statusInactive">Нужны ключи</span>
-      </div>
-    </div>
-
-    <div id="key-generation-section" class="section">
-      <button id="generate-keys-btn" class="btn btn-primary" data-i18n="generateKeys">
-        Сгенерировать ключи
-      </button>
-    </div>
-
-    <div id="keys-section" class="section" style="display: none;">
-      <div class="key-info">
-        <h3 data-i18n="yourPublicKey">Ваш открытый ключ:</h3>
-        <div class="key-display">
-          <textarea id="public-key-textarea" readonly></textarea>
-          <div class="key-actions">
-            <button id="copy-public-key-btn" class="btn btn-small" data-i18n="copyToClipboard">Копировать</button>
+    <main>
+      <!-- Keys Section -->
+      <section id="keys-section" class="section">
+        <div id="no-keys" class="key-status">
+          <p data-i18n="keysNotGenerated">❌ Ключи не сгенерированы</p>
+          <button id="generate-btn" class="btn btn-primary" data-i18n="generateKeys">Сгенерировать ключи</button>
+        </div>
+        
+        <div id="has-keys" class="key-status hidden">
+          <p data-i18n="keysReady">✅ Ключи готовы</p>
+          
+          <div class="key-display">
+            <label data-i18n="yourPublicKey">Ваш публичный ключ:</label>
+            <textarea id="public-key-display" readonly></textarea>
+            <div class="button-group">
+              <button id="copy-public-key-btn" class="btn btn-small" data-i18n="copyToClipboard">Копировать</button>
+            </div>
+          </div>
+          
+          <div class="contact-key-section">
+            <h3 data-i18n="importContactKey">Импорт ключа контакта</h3>
+            <input type="text" id="contact-name" data-i18n-placeholder="enterContactName" placeholder="Введите имя контакта">
+            <textarea id="contact-public-key" data-i18n-placeholder="enterPublicKey" placeholder="Вставьте публичный ключ контакта"></textarea>
+            <div class="button-group">
+              <button id="paste-contact-key-btn" class="btn btn-small" data-i18n="pasteFromClipboard">Вставить</button>
+              <button id="save-contact-key-btn" class="btn btn-primary" data-i18n="save">Сохранить</button>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="contact-key-section">
-        <h3 data-i18n="importContactKey">Импорт ключа контакта:</h3>
-        <div class="form-group">
-          <label data-i18n="contactName">Имя контакта:</label>
-          <input type="text" id="contact-name-input" placeholder="Имя или ID">
+      <!-- Settings Section -->
+      <section id="settings-section" class="section">
+        <h3 data-i18n="settings">Настройки</h3>
+        <div class="setting-row">
+          <label data-i18n="language">Язык:</label>
+          <select id="language-select">
+            <option value="auto" data-i18n="autoLanguage">Авто (как в VK)</option>
+            <option value="ru" data-i18n="russian">Русский</option>
+            <option value="en" data-i18n="english">English</option>
+          </select>
         </div>
-        <div class="form-group">
-          <label data-i18n="contactPublicKey">Открытый ключ контакта:</label>
-          <textarea id="contact-key-textarea" placeholder="Вставьте открытый ключ контакта"></textarea>
-          <button id="paste-contact-key-btn" class="btn btn-small btn-secondary" data-i18n="pasteFromClipboard">Вставить</button>
+      </section>
+
+      <!-- Chat Info Section -->
+      <section id="chat-info-section" class="section">
+        <div id="no-chat" class="chat-status">
+          <p data-i18n="noChatDetected">Чат не обнаружен</p>
         </div>
-        <button id="save-contact-key-btn" class="btn btn-primary" data-i18n="save">Сохранить</button>
-      </div>
+        <div id="has-chat" class="chat-status hidden">
+          <p data-i18n="chatDetected">✅ Чат обнаружен</p>
+          <p id="chat-type" class="chat-type"></p>
+        </div>
+      </section>
+    </main>
 
-      <div id="saved-keys-section" class="saved-keys">
-        <h3 data-i18n="groupParticipants">Участники:</h3>
-        <ul id="saved-keys-list"></ul>
-      </div>
-    </div>
-
-    <div id="settings-section" class="section">
-      <h3 data-i18n="settings">Настройки</h3>
-      <div class="form-group">
-        <label data-i18n="language">Язык:</label>
-        <select id="language-select">
-          <option value="auto" data-i18n="autoLanguage">Авто (как VK)</option>
-          <option value="ru" data-i18n="russian">Русский</option>
-          <option value="en" data-i18n="english">English</option>
-        </select>
-      </div>
-    </div>
-
-    <div id="current-chat-section" class="section">
-      <h3 data-i18n="chatDetected">Чат:</h3>
-      <div id="current-chat-info" class="chat-info">
-        <span data-i18n="noChatDetected">Чат не обнаружен</span>
-      </div>
-    </div>
-
-    <footer class="footer">
-      <p>VKrypt v1.0 • E2EE для ВКонтакте</p>
+    <footer>
+      <p class="version">VKrypt v1.0.0</p>
     </footer>
   </div>
-
   <script src="popup.js"></script>
 </body>
 </html>

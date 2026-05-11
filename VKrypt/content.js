@@ -1,516 +1,204 @@
-// VKrypt Content Script - VK UI Integration
+// VKrypt Content Script - Integrates with VK chat interface
 
-let currentChatId = null;
-let isGroupChat = false;
-let chatParticipants = [];
 let encryptionEnabled = false;
-let language = 'ru';
+let currentChatId = null;
+let contactKeys = {};
+let hasLocalKeys = false;
+let myPublicKey = null;
 
-// Initialize
-initializeContentScript();
-
-async function initializeContentScript() {
-  console.log('VKrypt content script loaded');
+// Initialize content script
+async function init() {
+  // Load saved data
+  const storage = await browser.storage.local.get(['hasKeys', 'publicKey', 'contactKeys', 'encryptionEnabled']);
+  hasLocalKeys = storage.hasKeys || false;
+  myPublicKey = storage.publicKey || null;
+  contactKeys = storage.contactKeys || {};
+  encryptionEnabled = storage.encryptionEnabled || false;
   
-  // Get language setting
-  const langResponse = await chrome.runtime.sendMessage({ action: 'getLanguage' });
-  language = langResponse?.language || 'ru';
+  // Watch for URL changes
+  observeUrlChanges();
   
-  // Detect VK language from page
-  detectVKLanguage();
+  // Initial check
+  checkCurrentChat();
   
-  // Start monitoring for chat changes
-  monitorChatChanges();
-  
-  // Initial chat detection
-  setTimeout(detectCurrentChat, 1000);
+  console.log("VKrypt content script initialized");
 }
 
-function detectVKLanguage() {
-  // Check for VK language indicators in the page
-  const htmlLang = document.documentElement.lang;
-  const vkLangElement = document.querySelector('[data-lang]');
+// Observe URL changes to detect chat switches
+function observeUrlChanges() {
+  let lastUrl = location.href;
   
-  let detectedLang = 'ru';
+  new MutationObserver(() => {
+    const url = location.href;
+    if (url !== lastUrl) {
+      lastUrl = url;
+      checkCurrentChat();
+    }
+  }).observe(document, { subtree: true, childList: true });
+}
+
+// Check current chat and update UI
+async function checkCurrentChat() {
+  const url = location.href;
   
-  if (htmlLang === 'en' || document.body.innerHTML.includes('"lang":"en"')) {
-    detectedLang = 'en';
-  } else if (htmlLang === 'ru' || document.body.innerHTML.includes('"lang":"ru"')) {
-    detectedLang = 'ru';
-  }
+  // Match VK chat URLs: /im?sel=... or /im/convo/...
+  const chatMatch = url.match(/vk\.com\/im(?:\?sel=|\/convo\/)(\d+)/);
   
-  vkLanguage = detectedLang;
-  chrome.runtime.sendMessage({ action: 'detectVKLanguage', vkLang: detectedLang });
-  
-  // Update language if auto mode
-  if (language === 'auto') {
-    language = detectedLang;
+  if (chatMatch) {
+    currentChatId = chatMatch[1];
+    await injectEncryptionUI();
+  } else {
+    currentChatId = null;
+    removeEncryptionUI();
   }
 }
 
-function monitorChatChanges() {
-  // Use MutationObserver to detect URL and DOM changes
+// Inject encryption UI into chat
+async function injectEncryptionUI() {
+  // Wait for chat interface to load
+  await waitForElement('.ConversationCard');
+  
+  // Remove existing badges
+  removeExistingBadges();
+  
+  // Add status badge
+  addStatusBadge();
+  
+  // Monitor for new messages
+  monitorMessages();
+}
+
+// Wait for an element to appear
+function waitForElement(selector, timeout = 10000) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(selector)) {
+      resolve(document.querySelector(selector));
+      return;
+    }
+    
+    const observer = new MutationObserver((mutations, obs) => {
+      if (document.querySelector(selector)) {
+        resolve(document.querySelector(selector));
+        obs.disconnect();
+      }
+    });
+    
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+    
+    setTimeout(() => {
+      observer.disconnect();
+      reject(new Error('Timeout waiting for element'));
+    }, timeout);
+  });
+}
+
+// Remove existing badges before adding new ones
+function removeExistingBadges() {
+  document.querySelectorAll('.vkrypt-status-badge').forEach(el => el.remove());
+}
+
+// Add status badge to chat header
+function addStatusBadge() {
+  const header = document.querySelector('.ConversationCard .Header');
+  if (!header) return;
+  
+  const badge = document.createElement('div');
+  badge.className = 'vkrypt-status-badge';
+  
+  if (!hasLocalKeys) {
+    badge.classList.add('vkrypt-status-inactive');
+    badge.textContent = '⚠️ Нет ключей';
+  } else if (!contactKeys[currentChatId]) {
+    badge.classList.add('vkrypt-status-inactive');
+    badge.textContent = '⚠️ Нет ключа контакта';
+  } else if (encryptionEnabled) {
+    badge.classList.add('vkrypt-status-active');
+    badge.textContent = '🔒 Шифрование активно';
+  } else {
+    badge.classList.add('vkrypt-status-disabled');
+    badge.textContent = '🔓 Шифрование отключено';
+  }
+  
+  header.style.position = 'relative';
+  header.appendChild(badge);
+}
+
+// Monitor messages for encryption indicators
+function monitorMessages() {
+  const messageContainer = document.querySelector('.MessageRow');
+  if (!messageContainer) return;
+  
   const observer = new MutationObserver((mutations) => {
-    checkForChatChange();
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains('MessageRow')) {
+          checkMessageForEncryption(node);
+        }
+      });
+    });
   });
   
   observer.observe(document.body, {
     childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ['class', 'style']
-  });
-  
-  // Also listen for popstate (browser back/forward)
-  window.addEventListener('popstate', () => {
-    setTimeout(detectCurrentChat, 500);
-  });
-  
-  // Listen for hash changes
-  window.addEventListener('hashchange', () => {
-    setTimeout(detectCurrentChat, 500);
+    subtree: true
   });
 }
 
-function checkForChatChange() {
-  const url = window.location.href;
+// Check individual message for encryption
+function checkMessageForEncryption(messageEl) {
+  // Look for encrypted message markers in the content
+  const textContent = messageEl.textContent;
   
-  // Check if we're still on a chat page
-  if (!url.includes('/im')) {
-    if (currentChatId) {
-      // Left the chat, clean up
-      currentChatId = null;
-      removeEncryptionUI();
-    }
-    return;
-  }
-  
-  // Extract chat ID from URL
-  // Formats: 
-  // https://vk.com/im?sel=c123 (old)
-  // https://vk.com/im/convo/123 (new personal)
-  // https://vk.com/im/convo/c456 (new group)
-  // https://vk.com/im/convo/239940220?entrypoint=list_all
-  
-  const convoMatch = url.match(/\/im\/convo\/([a-z]?)(\d+)/i);
-  const selMatch = url.match(/[?&]sel=([a-z]?)(\d+)/i);
-  
-  let newChatId = null;
-  let newIsGroup = false;
-  
-  if (convoMatch) {
-    const prefix = convoMatch[1].toLowerCase();
-    const id = convoMatch[2];
-    newChatId = prefix + id;
-    newIsGroup = prefix === 'c';
-  } else if (selMatch) {
-    const prefix = selMatch[1].toLowerCase();
-    const id = selMatch[2];
-    newChatId = prefix + id;
-    newIsGroup = prefix === 'c';
-  }
-  
-  if (newChatId !== currentChatId) {
-    currentChatId = newChatId;
-    isGroupChat = newIsGroup;
-    console.log('Chat changed:', currentChatId, 'Group:', isGroupChat);
+  if (textContent.startsWith('VKRYPT_ENC:')) {
+    // This is an encrypted message
+    messageEl.classList.add('vkrypt-encrypted-marker');
     
-    if (currentChatId) {
-      detectChatParticipants();
-      addEncryptionUI();
-    } else {
-      removeEncryptionUI();
-    }
-  }
-}
-
-function detectCurrentChat() {
-  checkForChatChange();
-}
-
-function detectChatParticipants() {
-  if (!isGroupChat) {
-    chatParticipants = [currentChatId];
-    return;
-  }
-  
-  // For group chats, try to extract participant IDs from the page
-  // VK stores participant info in various places
-  const participantElements = document.querySelectorAll('[data-peer-id], .peer[data-peer-id]');
-  
-  chatParticipants = [];
-  participantElements.forEach(el => {
-    const peerId = el.getAttribute('data-peer-id');
-    if (peerId && !chatParticipants.includes(peerId)) {
-      chatParticipants.push(peerId);
-    }
-  });
-  
-  // If we couldn't find participants, use the chat ID
-  if (chatParticipants.length === 0) {
-    chatParticipants = [currentChatId];
-  }
-  
-  console.log('Detected participants:', chatParticipants);
-}
-
-// UI Management
-let encryptionButton = null;
-let statusBadge = null;
-
-function addEncryptionUI() {
-  if (!currentChatId) return;
-  
-  // Wait for chat header to be available
-  const waitForHeader = setInterval(() => {
-    // Try multiple selectors for VK chat header
-    const headerSelectors = [
-      '.chat_header',
-      '.TopProfile',
-      '.im-chat-header',
-      '[class*="chatHeader"]',
-      '.ConversationCard'
-    ];
+    // Add tooltip or indicator
+    const indicator = document.createElement('span');
+    indicator.className = 'vkrypt-message-indicator';
+    indicator.textContent = '🔒';
+    indicator.title = 'Зашифрованное сообщение';
     
-    let header = null;
-    for (const selector of headerSelectors) {
-      header = document.querySelector(selector);
-      if (header) break;
+    const messageText = messageEl.querySelector('.MessageText');
+    if (messageText && !messageText.querySelector('.vkrypt-message-indicator')) {
+      messageText.prepend(indicator);
     }
-    
-    if (!header) {
-      // Try finding by structure
-      const mainContent = document.querySelector('.page_layout_content, .im-page-wrap');
-      if (mainContent) {
-        header = mainContent.querySelector('div[class]:first-child');
-      }
-    }
-    
-    if (header) {
-      clearInterval(waitForHeader);
-      injectEncryptionControls(header);
-    }
-  }, 500);
-  
-  // Timeout after 5 seconds
-  setTimeout(() => clearInterval(waitForHeader), 5000);
-}
-
-function injectEncryptionControls(header) {
-  // Remove existing controls if any
-  removeEncryptionUI();
-  
-  // Create status badge
-  statusBadge = document.createElement('div');
-  statusBadge.className = 'vkrypt-status-badge';
-  updateStatusBadge();
-  
-  // Create encryption toggle button
-  encryptionButton = document.createElement('button');
-  encryptionButton.className = 'vkrypt-encrypt-btn';
-  encryptionButton.innerHTML = getTranslation('encryptionToggle');
-  encryptionButton.onclick = toggleEncryption;
-  
-  // Find a good place to insert
-  const headerActions = header.querySelector('.chat_actions, .top_profile_actions, [class*="actions"]');
-  
-  if (headerActions) {
-    headerActions.appendChild(statusBadge);
-    headerActions.appendChild(encryptionButton);
-  } else {
-    // Append to header directly
-    header.style.position = 'relative';
-    header.appendChild(statusBadge);
-    header.appendChild(encryptionButton);
   }
-  
-  // Add message input listener
-  addMessageInputListener();
-  
-  console.log('VKrypt UI injected');
 }
 
+// Remove encryption UI when leaving chat
 function removeEncryptionUI() {
-  if (statusBadge) {
-    statusBadge.remove();
-    statusBadge = null;
-  }
-  if (encryptionButton) {
-    encryptionButton.remove();
-    encryptionButton = null;
-  }
-  
-  // Remove encrypted message markers
-  document.querySelectorAll('.vkrypt-encrypted-marker').forEach(el => el.remove());
-  
-  // Remove input listeners
-  const inputField = getMessageInput();
-  if (inputField) {
-    inputField.removeEventListener('keydown', handleEncryptedSend);
-  }
+  removeExistingBadges();
+  currentChatId = null;
 }
 
-function updateStatusBadge() {
-  if (!statusBadge) return;
-  
-  chrome.runtime.sendMessage({ action: 'getKeyPair' }, (response) => {
-    if (!response || !response.hasKeys) {
-      statusBadge.textContent = '⚠️';
-      statusBadge.title = getTranslation('statusInactive');
-      statusBadge.className = 'vkrypt-status-badge vkrypt-status-warning';
-    } else {
-      // Check if contact key exists
-      chrome.runtime.sendMessage({ action: 'getContactKeys' }, (resp) => {
-        const keys = resp?.keys || {};
-        const hasContactKey = keys[currentChatId] || (isGroupChat && Object.keys(keys).length > 0);
-        
-        if (hasContactKey && encryptionEnabled) {
-          statusBadge.textContent = '🔒';
-          statusBadge.title = getTranslation('statusActive');
-          statusBadge.className = 'vkrypt-status-badge vkrypt-status-active';
-        } else if (hasContactKey) {
-          statusBadge.textContent = '🔓';
-          statusBadge.title = getTranslation('statusDisabled');
-          statusBadge.className = 'vkrypt-status-badge vkrypt-status-disabled';
-        } else {
-          statusBadge.textContent = '⚠️';
-          statusBadge.title = getTranslation('statusInactive');
-          statusBadge.className = 'vkrypt-status-badge vkrypt-status-warning';
-        }
-      });
-    }
-  });
-}
-
-function toggleEncryption() {
-  if (!encryptionEnabled) {
-    // Check if we have keys
-    chrome.runtime.sendMessage({ action: 'getKeyPair' }, (response) => {
-      if (!response || !response.hasKeys) {
-        alert(getTranslation('keysNotGenerated'));
-        return;
-      }
-      
-      // Check if we have contact key
-      chrome.runtime.sendMessage({ action: 'getContactKeys' }, (resp) => {
-        const keys = resp?.keys || {};
-        const hasContactKey = keys[currentChatId] || (isGroupChat && Object.keys(keys).length > 0);
-        
-        if (!hasContactKey) {
-          alert(getTranslation('statusInactive'));
-          return;
-        }
-        
-        encryptionEnabled = true;
-        updateStatusBadge();
-        addMessageInputListener();
-      });
-    });
-  } else {
-    encryptionEnabled = false;
-    updateStatusBadge();
-  }
-}
-
-function getMessageInput() {
-  // Multiple selectors for VK message input
-  const selectors = [
-    '.message_field textarea',
-    '.im-message-field textarea',
-    '[data-placeholder*="message" i] textarea',
-    '.editable',
-    '[contenteditable="true"]'
-  ];
-  
-  for (const selector of selectors) {
-    const input = document.querySelector(selector);
-    if (input) return input;
+// Listen for messages from popup
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "updateStatus") {
+    checkCurrentChat();
+    sendResponse({ success: true });
   }
   
-  return null;
-}
-
-function addMessageInputListener() {
-  const inputField = getMessageInput();
-  if (inputField) {
-    inputField.removeEventListener('keydown', handleEncryptedSend);
-    inputField.addEventListener('keydown', handleEncryptedSend);
-  }
-}
-
-function handleEncryptedSend(event) {
-  if (!encryptionEnabled || !event.shiftKey || event.key !== 'Enter') {
-    return;
-  }
-  
-  event.preventDefault();
-  
-  const inputField = getMessageInput();
-  if (!inputField) return;
-  
-  const message = inputField.value.trim();
-  if (!message) return;
-  
-  // Send encrypted message
-  encryptAndSend(message);
-}
-
-async function encryptAndSend(message) {
-  try {
-    const response = await chrome.runtime.sendMessage({
-      action: 'encryptMessage',
-      message: message,
-      contactId: currentChatId,
-      isGroup: isGroupChat,
-      participantIds: chatParticipants
-    });
-    
-    if (response.success) {
-      // Convert to JSON string for sending
-      const encryptedText = 'VKRYPT:' + JSON.stringify(response.encryptedData);
-      
-      // Insert into input field and send
-      const inputField = getMessageInput();
-      if (inputField) {
-        inputField.value = encryptedText;
-        
-        // Trigger input event
-        inputField.dispatchEvent(new Event('input', { bubbles: true }));
-        
-        // Send message (simulate Enter press)
-        const enterEvent = new KeyboardEvent('keydown', {
-          key: 'Enter',
-          code: 'Enter',
-          keyCode: 13,
-          which: 13,
-          bubbles: true
-        });
-        inputField.dispatchEvent(enterEvent);
-        
-        // Clear input
-        setTimeout(() => {
-          inputField.value = '';
-          inputField.dispatchEvent(new Event('input', { bubbles: true }));
-        }, 100);
-      }
-    }
-  } catch (error) {
-    console.error('Encryption failed:', error);
-    alert('Failed to encrypt message: ' + error.message);
-  }
-}
-
-// Message decryption and display
-function processIncomingMessages() {
-  const messageSelectors = [
-    '.message',
-    '.im-message',
-    '[class*="messageRow"]'
-  ];
-  
-  for (const selector of messageSelectors) {
-    const messages = document.querySelectorAll(selector);
-    messages.forEach(msg => {
-      if (!msg.classList.contains('vkrypt-processed')) {
-        msg.classList.add('vkrypt-processed');
-        checkAndDecryptMessage(msg);
-      }
-    });
-  }
-}
-
-async function checkAndDecryptMessage(messageElement) {
-  const textContent = messageElement.textContent || messageElement.innerText;
-  
-  if (!textContent.startsWith('VKRYPT:')) {
-    return;
-  }
-  
-  try {
-    const encryptedJson = textContent.substring(7);
-    const encryptedData = JSON.parse(encryptedJson);
-    
-    // Extract sender ID from message element
-    const senderId = messageElement.getAttribute('data-from-id') || 
-                     messageElement.closest('[data-peer-id]')?.getAttribute('data-peer-id') ||
-                     currentChatId;
-    
-    const response = await chrome.runtime.sendMessage({
-      action: 'decryptMessage',
-      encryptedData: encryptedData,
-      senderId: senderId
-    });
-    
-    if (response.success) {
-      // Replace encrypted content with decrypted message
-      const messageBody = messageElement.querySelector('.message_text, .im-message-text, [class*="text"]');
-      if (messageBody) {
-        messageBody.textContent = response.message;
-        messageBody.classList.add('vkrypt-decrypted');
-        
-        // Add decryption indicator
-        const indicator = document.createElement('span');
-        indicator.className = 'vkrypt-encrypted-marker';
-        indicator.textContent = '🔒';
-        indicator.title = getTranslation('encryptedMessage');
-        messageBody.insertBefore(indicator, messageBody.firstChild);
-      }
-    }
-  } catch (error) {
-    console.error('Decryption failed:', error);
-    // Mark as failed decryption
-    messageElement.classList.add('vkrypt-decrypt-failed');
-  }
-}
-
-// Listen for messages from background script
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'getChatInfo') {
+  if (message.action === "getChatInfo") {
     sendResponse({
-      detected: !!currentChatId,
       chatId: currentChatId,
-      isGroup: isGroupChat,
-      participants: chatParticipants
+      hasKeys: hasLocalKeys,
+      hasContactKey: currentChatId ? !!contactKeys[currentChatId] : false,
+      encryptionEnabled: encryptionEnabled
     });
-  }
-  
-  if (request.action === 'detectLanguage') {
-    detectVKLanguage();
-    sendResponse({ language: vkLanguage });
   }
   
   return true;
 });
 
-// Translation helper
-function getTranslation(key) {
-  const translations = {
-    ru: {
-      encryptionToggle: 'Шифрование',
-      statusActive: '🔒 Шифрование активно',
-      statusInactive: '⚠️ Нужны ключи',
-      statusDisabled: '🔓 Отключено',
-      keysNotGenerated: '❌ Ключи не сгенерированы. Откройте настройки расширения.',
-      encryptedMessage: '🔒 Зашифровано'
-    },
-    en: {
-      encryptionToggle: 'Encryption',
-      statusActive: '🔒 Encryption Active',
-      statusInactive: '⚠️ Keys Needed',
-      statusDisabled: '🔓 Disabled',
-      keysNotGenerated: '❌ Keys not generated. Open extension settings.',
-      encryptedMessage: '🔒 Encrypted'
-    }
-  };
-  
-  const lang = language || 'ru';
-  return translations[lang]?.[key] || translations.ru[key] || key;
+// Initialize on page load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
 }
 
-// Monitor for new messages periodically
-setInterval(processIncomingMessages, 2000);
-
-// Initial message processing
-setTimeout(processIncomingMessages, 2000);
-
-console.log('VKrypt content script initialized');
+console.log("VKrypt content script loaded");

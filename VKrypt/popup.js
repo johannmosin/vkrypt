@@ -1,355 +1,299 @@
 // VKrypt Popup Script
+let currentLanguage = 'auto';
 
-let currentLanguage = 'ru';
-
-// Initialize popup
-document.addEventListener('DOMContentLoaded', async () => {
-  console.log('VKrypt popup initialized');
-  
-  // Load language setting
-  await loadLanguage();
-  
-  // Apply translations using Chrome i18n API
-  applyTranslations();
-  
-  // Check key status
-  await checkKeyStatus();
-  
-  // Load saved contact keys
-  await loadContactKeys();
-  
-  // Get current chat info
-  await getCurrentChatInfo();
-  
-  // Setup event listeners
-  setupEventListeners();
-});
-
-async function loadLanguage() {
-  const response = await chrome.runtime.sendMessage({ action: 'getLanguage' });
-  currentLanguage = response?.language || 'ru';
-  
-  // Update language select
-  const languageSelect = document.getElementById('language-select');
-  if (languageSelect) {
-    languageSelect.value = currentLanguage;
-  }
-}
-
-function applyTranslations() {
+// Translation function
+function translatePage(lang) {
   const elements = document.querySelectorAll('[data-i18n]');
   elements.forEach(el => {
     const key = el.getAttribute('data-i18n');
-    const translation = chrome.i18n.getMessage(key);
-    
-    if (!translation) return;
-    
-    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-      if (el.hasAttribute('placeholder')) {
-        el.placeholder = translation;
-      }
-    } else {
+    const translation = browser.i18n.getMessage(key);
+    if (translation) {
       el.textContent = translation;
     }
   });
   
-  // Update HTML lang attribute
-  document.documentElement.lang = currentLanguage;
-}
-
-function t(key) {
-  return chrome.i18n.getMessage(key) || key;
-}
-
-async function checkKeyStatus() {
-  const response = await chrome.runtime.sendMessage({ action: 'getKeyPair' });
-  
-  const statusIndicator = document.getElementById('status-indicator');
-  const statusIcon = statusIndicator?.querySelector('.status-icon');
-  const statusText = statusIndicator?.querySelector('.status-text');
-  const keyGenerationSection = document.getElementById('key-generation-section');
-  const keysSection = document.getElementById('keys-section');
-  
-  if (response?.hasKeys) {
-    // Keys exist
-    if (statusIndicator) {
-      statusIndicator.className = 'status-indicator vkrypt-status-active';
-      statusIcon.textContent = '✅';
-      statusText.textContent = t('statusActive');
+  const placeholderElements = document.querySelectorAll('[data-i18n-placeholder]');
+  placeholderElements.forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    const translation = browser.i18n.getMessage(key);
+    if (translation) {
+      el.placeholder = translation;
     }
-    
-    if (keyGenerationSection) keyGenerationSection.style.display = 'none';
-    if (keysSection) keysSection.style.display = 'block';
-    
-    // Display public key (full, not truncated)
-    const publicKeyTextarea = document.getElementById('public-key-textarea');
-    if (publicKeyTextarea) {
-      publicKeyTextarea.value = response.publicKey;
-    }
-  } else {
-    // No keys
-    if (statusIndicator) {
-      statusIndicator.className = 'status-indicator vkrypt-status-warning';
-      statusIcon.textContent = '⚠️';
-      statusText.textContent = t('statusInactive');
-    }
-    
-    if (keyGenerationSection) keyGenerationSection.style.display = 'block';
-    if (keysSection) keysSection.style.display = 'none';
-  }
-}
-
-async function loadContactKeys() {
-  const response = await chrome.runtime.sendMessage({ action: 'getContactKeys' });
-  const keys = response?.keys || {};
-  
-  const savedKeysList = document.getElementById('saved-keys-list');
-  if (!savedKeysList) return;
-  
-  savedKeysList.innerHTML = '';
-  
-  const keyEntries = Object.entries(keys);
-  if (keyEntries.length === 0) {
-    savedKeysList.innerHTML = `<li style="color: #666677; justify-content: center;">${t('noContacts')}</li>`;
-    return;
-  }
-  
-  keyEntries.forEach(([contactId, keyData]) => {
-    const li = document.createElement('li');
-    
-    const nameSpan = document.createElement('span');
-    nameSpan.className = 'key-name';
-    nameSpan.textContent = `${keyData.name || contactId}`;
-    nameSpan.title = `ID: ${contactId}`;
-    
-    const actionsDiv = document.createElement('div');
-    actionsDiv.className = 'key-actions';
-    
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'btn btn-small btn-danger';
-    deleteBtn.textContent = t('removeParticipant');
-    deleteBtn.onclick = () => deleteContactKey(contactId);
-    
-    actionsDiv.appendChild(deleteBtn);
-    li.appendChild(nameSpan);
-    li.appendChild(actionsDiv);
-    savedKeysList.appendChild(li);
   });
 }
 
-async function deleteContactKey(contactId) {
-  const result = await chrome.storage.local.get(['contactKeys']);
-  const contactKeys = result.contactKeys || {};
-  
-  delete contactKeys[contactId];
-  
-  await chrome.storage.local.set({ contactKeys });
-  await loadContactKeys();
-  
-  // Update content script if VK tab is open
-  updateContentScript();
-}
-
-function setupEventListeners() {
-  // Generate keys button
-  const generateBtn = document.getElementById('generate-keys-btn');
-  if (generateBtn) {
-    generateBtn.addEventListener('click', generateKeyPair);
-  }
-  
-  // Copy public key button
-  const copyPublicKeyBtn = document.getElementById('copy-public-key-btn');
-  if (copyPublicKeyBtn) {
-    copyPublicKeyBtn.addEventListener('click', copyPublicKey);
-  }
-  
-  // Paste contact key button
-  const pasteContactKeyBtn = document.getElementById('paste-contact-key-btn');
-  if (pasteContactKeyBtn) {
-    pasteContactKeyBtn.addEventListener('click', pasteContactKey);
-  }
-  
-  // Save contact key button
-  const saveContactKeyBtn = document.getElementById('save-contact-key-btn');
-  if (saveContactKeyBtn) {
-    saveContactKeyBtn.addEventListener('click', saveContactKey);
-  }
-  
-  // Language select
-  const languageSelect = document.getElementById('language-select');
-  if (languageSelect) {
-    languageSelect.addEventListener('change', changeLanguage);
-  }
-}
-
-async function generateKeyPair() {
-  const generateBtn = document.getElementById('generate-keys-btn');
-  if (generateBtn) {
-    generateBtn.disabled = true;
-    generateBtn.textContent = t('generating');
-  }
-  
-  try {
-    const response = await chrome.runtime.sendMessage({ action: 'generateKeyPair' });
-    
-    if (response.success) {
-      console.log('Keys generated successfully');
-      await checkKeyStatus();
-      await loadContactKeys();
-    } else {
-      alert(t('generateKeyError'));
-    }
-  } catch (error) {
-    console.error('Key generation error:', error);
-    alert(t('error') + ': ' + error.message);
-  } finally {
-    if (generateBtn) {
-      generateBtn.disabled = false;
-      generateBtn.textContent = t('generateKeys');
-    }
-  }
-}
-
-async function copyPublicKey() {
-  const publicKeyTextarea = document.getElementById('public-key-textarea');
-  if (!publicKeyTextarea) return;
-  
-  try {
-    await navigator.clipboard.writeText(publicKeyTextarea.value);
-    
-    const copyBtn = document.getElementById('copy-public-key-btn');
-    if (copyBtn) {
-      const originalText = copyBtn.textContent;
-      copyBtn.textContent = t('copied');
-      copyBtn.classList.add('copy-success');
+// Detect VK language
+function detectVKLanguage() {
+  return new Promise((resolve) => {
+    browser.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (!tabs[0]) {
+        resolve('ru'); // Default to Russian
+        return;
+      }
       
-      setTimeout(() => {
-        copyBtn.textContent = originalText;
-        copyBtn.classList.remove('copy-success');
-      }, 1500);
+      // Try to get VK language from page or storage
+      // For now, default to Russian as VK's primary language
+      resolve('ru');
+    });
+  });
+}
+
+// Get effective language
+async function getEffectiveLanguage() {
+  if (currentLanguage === 'auto') {
+    return await detectVKLanguage();
+  }
+  return currentLanguage;
+}
+
+// Initialize popup
+async function initPopup() {
+  // Load saved language
+  const response = await browser.runtime.sendMessage({ action: "getLanguage" });
+  currentLanguage = response || 'auto';
+  document.getElementById('language-select').value = currentLanguage;
+  
+  // Apply translations
+  const effectiveLang = await getEffectiveLanguage();
+  translatePage(effectiveLang);
+  
+  // Check keys status
+  await checkKeysStatus();
+  
+  // Check chat status
+  await checkChatStatus();
+}
+
+// Check if keys exist
+async function checkKeysStatus() {
+  const result = await browser.runtime.sendMessage({ action: "getKeys" });
+  const noKeysDiv = document.getElementById('no-keys');
+  const hasKeysDiv = document.getElementById('has-keys');
+  const statusDiv = document.getElementById('status');
+  const publicKeyDisplay = document.getElementById('public-key-display');
+  
+  if (result.hasKeys && result.publicKey) {
+    noKeysDiv.classList.add('hidden');
+    hasKeysDiv.classList.remove('hidden');
+    statusDiv.className = 'status status-active';
+    
+    const effectiveLang = await getEffectiveLanguage();
+    statusDiv.querySelector('span').textContent = browser.i18n.getMessage('statusActive');
+    
+    // Display full public key without truncation
+    publicKeyDisplay.value = result.publicKey;
+  } else {
+    noKeysDiv.classList.remove('hidden');
+    hasKeysDiv.classList.add('hidden');
+    statusDiv.className = 'status status-inactive';
+    
+    const effectiveLang = await getEffectiveLanguage();
+    statusDiv.querySelector('span').textContent = browser.i18n.getMessage('statusInactive');
+    
+    publicKeyDisplay.value = '';
+  }
+}
+
+// Check if chat is open
+async function checkChatStatus() {
+  try {
+    const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+    if (!tabs[0] || !tabs[0].url) {
+      showNoChat();
+      return;
+    }
+    
+    const url = tabs[0].url;
+    // Match VK chat URLs: /im?sel=... or /im/convo/...
+    const chatMatch = url.match(/vk\.com\/im(?:\?sel=|\/convo\/)(\d+)/);
+    
+    if (chatMatch) {
+      const chatId = chatMatch[1];
+      const isGroup = chatId.startsWith('2') && chatId.length > 9; // Group chats typically start with 2
+      
+      showHasChat(isGroup);
+    } else {
+      showNoChat();
     }
   } catch (error) {
+    console.error("Error checking chat status:", error);
+    showNoChat();
+  }
+}
+
+function showNoChat() {
+  const noChatDiv = document.getElementById('no-chat');
+  const hasChatDiv = document.getElementById('has-chat');
+  
+  noChatDiv.classList.remove('hidden');
+  hasChatDiv.classList.add('hidden');
+}
+
+function showHasChat(isGroup) {
+  const noChatDiv = document.getElementById('no-chat');
+  const hasChatDiv = document.getElementById('has-chat');
+  const chatTypeEl = document.getElementById('chat-type');
+  
+  noChatDiv.classList.add('hidden');
+  hasChatDiv.classList.remove('hidden');
+  
+  const effectiveLang = await getEffectiveLanguage();
+  chatTypeEl.textContent = isGroup 
+    ? browser.i18n.getMessage('groupChat')
+    : browser.i18n.getMessage('personalChat');
+}
+
+// Generate key pair
+async function generateKeyPair() {
+  const generateBtn = document.getElementById('generate-btn');
+  const originalText = generateBtn.textContent;
+  
+  const effectiveLang = await getEffectiveLanguage();
+  generateBtn.textContent = browser.i18n.getMessage('generatingKeys');
+  generateBtn.disabled = true;
+  
+  try {
+    const result = await browser.runtime.sendMessage({ action: "generateKeyPair" });
+    
+    if (result.success) {
+      // Store the private key
+      const publicKeyJwk = JSON.parse(decodeURIComponent(escape(atob(result.publicKey))));
+      
+      // We need to export and store the private key separately
+      // Generate a new keypair that we can export both keys from
+      const keyPair = await crypto.subtle.generateKey(
+        {
+          name: "ECDH",
+          namedCurve: "P-256"
+        },
+        true,
+        ["deriveKey", "deriveBits"]
+      );
+      
+      const privateKeyJwk = await crypto.subtle.exportKey("jwk", keyPair.privateKey);
+      const publicKeyJwkNew = await crypto.subtle.exportKey("jwk", keyPair.publicKey);
+      
+      // Convert to base64 for storage
+      const publicKeyBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(publicKeyJwkNew))));
+      const privateKeyJwkString = JSON.stringify(privateKeyJwk);
+      
+      await browser.runtime.sendMessage({ 
+        action: "savePrivateKey",
+        publicKey: publicKeyBase64,
+        privateKeyJwk: privateKeyJwkString
+      });
+      
+      alert(browser.i18n.getMessage('keysGeneratedSuccess'));
+      await checkKeysStatus();
+    } else {
+      alert(browser.i18n.getMessage('keysGenerationError') + ': ' + result.error);
+    }
+  } catch (error) {
+    console.error("Key generation error:", error);
+    alert(browser.i18n.getMessage('keysGenerationError') + ': ' + error.message);
+  } finally {
+    generateBtn.textContent = originalText;
+    generateBtn.disabled = false;
+  }
+}
+
+// Copy public key to clipboard
+async function copyPublicKey() {
+  const publicKeyDisplay = document.getElementById('public-key-display');
+  
+  try {
+    await navigator.clipboard.writeText(publicKeyDisplay.value);
+    
+    const effectiveLang = await getEffectiveLanguage();
+    const originalText = document.getElementById('copy-public-key-btn').textContent;
+    document.getElementById('copy-public-key-btn').textContent = browser.i18n.getMessage('copied');
+    
+    setTimeout(() => {
+      document.getElementById('copy-public-key-btn').textContent = originalText;
+    }, 2000);
+  } catch (error) {
+    console.error("Copy error:", error);
     // Fallback for older browsers
-    publicKeyTextarea.select();
+    publicKeyDisplay.select();
     document.execCommand('copy');
   }
 }
 
+// Paste contact key from clipboard
 async function pasteContactKey() {
-  const contactKeyTextarea = document.getElementById('contact-key-textarea');
-  if (!contactKeyTextarea) return;
-  
   try {
     const text = await navigator.clipboard.readText();
-    contactKeyTextarea.value = text;
+    document.getElementById('contact-public-key').value = text;
   } catch (error) {
-    alert(t('pasteError'));
+    console.error("Paste error:", error);
+    alert("Failed to paste from clipboard. Please paste manually.");
   }
 }
 
+// Save contact key
 async function saveContactKey() {
-  const contactNameInput = document.getElementById('contact-name-input');
-  const contactKeyTextarea = document.getElementById('contact-key-textarea');
+  const contactName = document.getElementById('contact-name').value.trim();
+  const contactPublicKey = document.getElementById('contact-public-key').value.trim();
   
-  if (!contactNameInput || !contactKeyTextarea) return;
+  if (!contactName) {
+    alert(browser.i18n.getMessage('enterContactName'));
+    return;
+  }
   
-  const contactName = contactNameInput.value.trim();
-  const contactKey = contactKeyTextarea.value.trim();
-  
-  if (!contactKey) {
-    alert(t('enterPublicKey'));
+  if (!contactPublicKey) {
+    alert(browser.i18n.getMessage('enterPublicKey'));
     return;
   }
   
   // Validate key format (basic check)
-  if (!contactKey.startsWith('MFkw') && !contactKey.startsWith('MIIB')) {
-    const confirmSave = confirm(t('unusualKeyFormat'));
-    if (!confirmSave) return;
-  }
-  
-  // Use contact name or generate ID
-  const contactId = contactName || 'contact_' + Date.now();
-  
   try {
-    await chrome.runtime.sendMessage({
-      action: 'saveContactKey',
-      contactId: contactId,
-      publicKey: contactKey,
-      name: contactName || contactId
-    });
-    
-    // Clear inputs
-    contactNameInput.value = '';
-    contactKeyTextarea.value = '';
-    
-    // Reload keys list
-    await loadContactKeys();
-    
-    // Update content script
-    updateContentScript();
-    
-    alert(t('contactKeySaved'));
+    // Try to decode the key to validate format
+    const decoded = decodeURIComponent(escape(atob(contactPublicKey)));
+    JSON.parse(decoded);
   } catch (error) {
-    console.error('Save contact key error:', error);
-    alert(t('saveKeyError'));
+    alert(browser.i18n.getMessage('invalidKeyFormat'));
+    return;
   }
-}
-
-async function changeLanguage(event) {
-  const newLanguage = event.target.value;
-  currentLanguage = newLanguage;
   
-  await chrome.runtime.sendMessage({
-    action: 'setLanguage',
-    language: newLanguage
+  // Generate a simple ID based on name for now
+  // In a real implementation, this would be the actual contact ID
+  const contactId = 'contact_' + Date.now();
+  
+  await browser.runtime.sendMessage({
+    action: "saveContactKey",
+    contactId: contactId,
+    name: contactName,
+    publicKey: contactPublicKey
   });
   
-  applyTranslations();
-  await checkKeyStatus();
-  await loadContactKeys();
-}
-
-async function getCurrentChatInfo() {
-  const chatInfoDiv = document.getElementById('current-chat-info');
-  if (!chatInfoDiv) return;
+  alert(browser.i18n.getMessage('keySaved'));
   
-  try {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tabs[0] && tabs[0].url && tabs[0].url.includes('vk.com/im')) {
-      const response = await chrome.tabs.sendMessage(tabs[0].id, { action: 'getChatInfo' });
-      
-      if (response?.detected) {
-        const chatType = response.isGroup 
-          ? t('groupChat') 
-          : t('personalChat');
-        
-        chatInfoDiv.className = 'chat-info has-chat';
-        chatInfoDiv.innerHTML = `
-          <strong>${response.chatId}</strong><br>
-          ${chatType}
-          ${response.participants?.length > 1 ? `<br>${t('groupParticipants')} ${response.participants.length}` : ''}
-        `;
-        return;
-      }
-    }
-    
-    chatInfoDiv.className = 'chat-info';
-    chatInfoDiv.textContent = t('noChatDetected');
-  } catch (error) {
-    chatInfoDiv.className = 'chat-info';
-    chatInfoDiv.textContent = t('noChatDetected');
-  }
+  // Clear fields
+  document.getElementById('contact-name').value = '';
+  document.getElementById('contact-public-key').value = '';
 }
 
-function updateContentScript() {
-  chrome.tabs.query({ url: 'https://vk.com/im*' }, (tabs) => {
-    tabs.forEach(tab => {
-      chrome.tabs.sendMessage(tab.id, { action: 'updateKeys' }).catch(() => {});
-    });
+// Language change handler
+document.getElementById('language-select').addEventListener('change', async (e) => {
+  currentLanguage = e.target.value;
+  
+  await browser.runtime.sendMessage({ 
+    action: "setLanguage", 
+    language: currentLanguage 
   });
-}
-
-// Refresh chat info when popup opens
-window.addEventListener('focus', () => {
-  getCurrentChatInfo();
+  
+  const effectiveLang = await getEffectiveLanguage();
+  translatePage(effectiveLang);
+  
+  // Update status text
+  await checkKeysStatus();
 });
+
+// Event listeners
+document.getElementById('generate-btn').addEventListener('click', generateKeyPair);
+document.getElementById('copy-public-key-btn').addEventListener('click', copyPublicKey);
+document.getElementById('paste-contact-key-btn').addEventListener('click', pasteContactKey);
+document.getElementById('save-contact-key-btn').addEventListener('click', saveContactKey);
+
+// Initialize on load
+initPopup();

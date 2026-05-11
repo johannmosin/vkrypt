@@ -1,377 +1,298 @@
-// VKrypt Background Script - Crypto operations and key management
+// VKrypt - Background script for E2EE on VK
+// Handles key generation, encryption, and decryption
 
-// Global state
-let currentLanguage = 'ru';
-let vkLanguage = 'ru';
-
-// Initialize
-chrome.runtime.onInstalled.addListener(() => {
-  console.log('VKrypt installed');
-  initializeStorage();
-});
-
-// Listen for messages from popup and content scripts
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  handleMessage(request, sender, sendResponse);
-  return true; // Keep channel open for async response
-});
-
-async function handleMessage(request, sender, sendResponse) {
-  try {
-    switch (request.action) {
-      case 'generateKeyPair':
-        const keys = await generateKeyPair();
-        await saveKeys(keys);
-        sendResponse({ success: true, publicKey: keys.publicKey });
-        break;
-      
-      case 'getKeyPair':
-        const storedKeys = await getStoredKeys();
-        sendResponse(storedKeys);
-        break;
-      
-      case 'saveContactKey':
-        await saveContactKey(request.contactId, request.publicKey, request.name);
-        sendResponse({ success: true });
-        break;
-      
-      case 'getContactKeys':
-        const contactKeys = await getAllContactKeys();
-        sendResponse({ keys: contactKeys });
-        break;
-      
-      case 'encryptMessage':
-        const encrypted = await encryptMessage(request.message, request.contactId, request.isGroup, request.participantIds);
-        sendResponse({ success: true, encryptedData: encrypted });
-        break;
-      
-      case 'decryptMessage':
-        const decrypted = await decryptMessage(request.encryptedData, request.senderId);
-        sendResponse(decrypted);
-        break;
-      
-      case 'getCurrentChat':
-        const chatInfo = await getCurrentChatInfo();
-        sendResponse(chatInfo);
-        break;
-      
-      case 'setLanguage':
-        currentLanguage = request.language;
-        await chrome.storage.local.set({ language: currentLanguage });
-        sendResponse({ success: true });
-        break;
-      
-      case 'getLanguage':
-        const lang = await getLanguage();
-        sendResponse({ language: lang });
-        break;
-      
-      case 'detectVKLanguage':
-        vkLanguage = request.vkLang;
-        sendResponse({ success: true });
-        break;
-      
-      default:
-        sendResponse({ error: 'Unknown action' });
-    }
-  } catch (error) {
-    console.error('VKrypt error:', error);
-    sendResponse({ success: false, error: error.message });
-  }
-}
-
-async function initializeStorage() {
-  const existing = await chrome.storage.local.get(['language', 'keys', 'contactKeys']);
-  if (!existing.language) {
-    await chrome.storage.local.set({ language: 'ru' });
-  }
-  if (!existing.keys) {
-    console.log('No keys found, user needs to generate');
-  }
-}
-
-async function getLanguage() {
-  const result = await chrome.storage.local.get(['language', 'autoLanguage']);
-  if (result.autoLanguage !== false && vkLanguage) {
-    return vkLanguage === 'en' ? 'en' : 'ru';
-  }
-  return result.language || 'ru';
-}
-
-// Crypto Functions
+// Generate ECDH P-256 key pair
 async function generateKeyPair() {
-  console.log('Generating ECDH P-256 key pair...');
-  
-  const keyPair = await crypto.subtle.generateKey(
-    {
-      name: 'ECDH',
-      namedCurve: 'P-256'
-    },
-    true,
-    ['deriveKey', 'deriveBits']
-  );
-  
-  // Export public key
-  const publicKeyBuffer = await crypto.subtle.exportKey(
-    'spki',
-    keyPair.publicKey
-  );
-  
-  const publicKeyBase64 = arrayBufferToBase64(publicKeyBuffer);
-  
-  // Store private key (never exported)
-  const privateKeyJwk = await crypto.subtle.exportKey('jwk', keyPair.privateKey);
-  
-  console.log('Key pair generated successfully');
-  
-  return {
-    publicKey: publicKeyBase64,
-    privateKey: privateKeyJwk
-  };
-}
-
-async function saveKeys(keys) {
-  await chrome.storage.local.set({ 
-    keys: {
-      publicKey: keys.publicKey,
-      privateKey: keys.privateKey
-    },
-    keysGenerated: Date.now()
-  });
-  console.log('Keys saved to storage');
-}
-
-async function getStoredKeys() {
-  const result = await chrome.storage.local.get(['keys', 'keysGenerated']);
-  if (!result.keys || !result.keysGenerated) {
-    return { hasKeys: false };
-  }
-  
-  // Import private key from JWK
-  const privateKey = await crypto.subtle.importKey(
-    'jwk',
-    result.keys.privateKey,
-    { name: 'ECDH', namedCurve: 'P-256' },
-    true,
-    ['deriveKey', 'deriveBits']
-  );
-  
-  return {
-    hasKeys: true,
-    publicKey: result.keys.publicKey,
-    privateKey: privateKey,
-    generatedAt: result.keysGenerated
-  };
-}
-
-async function saveContactKey(contactId, publicKey, name) {
-  const result = await chrome.storage.local.get(['contactKeys']);
-  const contactKeys = result.contactKeys || {};
-  
-  contactKeys[contactId] = {
-    publicKey: publicKey,
-    name: name || contactId,
-    addedAt: Date.now()
-  };
-  
-  await chrome.storage.local.set({ contactKeys });
-  console.log(`Contact key saved for ${contactId}`);
-}
-
-async function getAllContactKeys() {
-  const result = await chrome.storage.local.get(['contactKeys']);
-  return result.contactKeys || {};
-}
-
-async function getCurrentChatInfo() {
-  // This will be called by content script which has access to the page
-  return new Promise((resolve) => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: 'getChatInfo' }, (response) => {
-          resolve(response || { detected: false });
-        });
-      } else {
-        resolve({ detected: false });
-      }
-    });
-  });
-}
-
-// Encryption/Decryption
-async function encryptMessage(message, contactId, isGroup = false, participantIds = []) {
-  const keyData = await getStoredKeys();
-  if (!keyData.hasKeys) {
-    throw new Error('No keys generated');
-  }
-  
-  let sharedSecret;
-  
-  if (isGroup) {
-    // For groups, we need all participant keys
-    const contactKeys = await getAllContactKeys();
-    const participantKeys = [];
-    
-    for (const pid of participantIds) {
-      if (contactKeys[pid]) {
-        const publicKeyBuffer = base64ToArrayBuffer(contactKeys[pid].publicKey);
-        const publicKey = await crypto.subtle.importKey(
-          'spki',
-          publicKeyBuffer,
-          { name: 'ECDH', namedCurve: 'P-256' },
-          true,
-          []
-        );
-        participantKeys.push(publicKey);
-      }
-    }
-    
-    if (participantKeys.length === 0) {
-      throw new Error('No valid participant keys');
-    }
-    
-    // Use first participant for shared secret (simplified - in production use group key agreement)
-    sharedSecret = await deriveSharedSecret(keyData.privateKey, participantKeys[0]);
-  } else {
-    const contactKeys = await getAllContactKeys();
-    if (!contactKeys[contactId]) {
-      throw new Error('No key for contact');
-    }
-    
-    const publicKeyBuffer = base64ToArrayBuffer(contactKeys[contactId].publicKey);
-    const publicKey = await crypto.subtle.importKey(
-      'spki',
-      publicKeyBuffer,
-      { name: 'ECDH', namedCurve: 'P-256' },
+  try {
+    const keyPair = await crypto.subtle.generateKey(
+      {
+        name: "ECDH",
+        namedCurve: "P-256"
+      },
       true,
+      ["deriveKey", "deriveBits"]
+    );
+    
+    // Export public key to JWK then to base64
+    const publicKeyJwk = await crypto.subtle.exportKey("jwk", keyPair.publicKey);
+    const publicKeyJson = JSON.stringify(publicKeyJwk);
+    const publicKeyBase64 = btoa(unescape(encodeURIComponent(publicKeyJson)));
+    
+    // Store private key securely (not exportable in normal usage)
+    // We'll store the keyPair object reference in memory for this session
+    // For persistence, we need to store the private key separately
+    
+    return {
+      success: true,
+      publicKey: publicKeyBase64,
+      keyPair: keyPair
+    };
+  } catch (error) {
+    console.error("Key generation error:", error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// Derive shared secret from private key and contact's public key
+async function deriveSharedSecret(privateKey, contactPublicKeyBase64) {
+  try {
+    // Import contact's public key
+    const contactPublicKeyJson = JSON.parse(decodeURIComponent(escape(atob(contactPublicKeyBase64))));
+    const contactPublicKey = await crypto.subtle.importKey(
+      "jwk",
+      contactPublicKeyJson,
+      {
+        name: "ECDH",
+        namedCurve: "P-256"
+      },
+      false,
       []
     );
     
-    sharedSecret = await deriveSharedSecret(keyData.privateKey, publicKey);
+    // Derive bits
+    const derivedBits = await crypto.subtle.deriveBits(
+      {
+        name: "ECDH",
+        public: contactPublicKey
+      },
+      privateKey,
+      256
+    );
+    
+    return derivedBits;
+  } catch (error) {
+    console.error("Derive shared secret error:", error);
+    throw error;
   }
-  
-  // Generate random IV
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  
-  // Derive AES key from shared secret
-  const aesKey = await deriveAESKey(sharedSecret);
-  
-  // Encrypt message
-  const encoder = new TextEncoder();
-  const ciphertext = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: iv },
-    aesKey,
-    encoder.encode(message)
-  );
-  
-  // Package encrypted data
-  return {
-    version: 1,
-    algorithm: 'AES-GCM-256',
-    iv: arrayBufferToBase64(iv),
-    ciphertext: arrayBufferToBase64(ciphertext),
-    isGroup: isGroup,
-    timestamp: Date.now()
-  };
 }
 
-async function decryptMessage(encryptedData, senderId) {
-  const keyData = await getStoredKeys();
-  if (!keyData.hasKeys) {
-    throw new Error('No keys available');
+// Encrypt message using AES-GCM
+async function encryptMessage(message, sharedSecret) {
+  try {
+    // Create AES key from shared secret
+    const aesKey = await crypto.subtle.importKey(
+      "raw",
+      sharedSecret,
+      { name: "AES-GCM" },
+      false,
+      ["encrypt"]
+    );
+    
+    // Generate random IV
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    
+    // Encrypt
+    const encodedMessage = new TextEncoder().encode(message);
+    const encrypted = await crypto.subtle.encrypt(
+      {
+        name: "AES-GCM",
+        iv: iv
+      },
+      aesKey,
+      encodedMessage
+    );
+    
+    // Combine IV + encrypted data
+    const encryptedArray = new Uint8Array(encrypted);
+    const combined = new Uint8Array(iv.length + encryptedArray.length);
+    combined.set(iv, 0);
+    combined.set(encryptedArray, iv.length);
+    
+    // Convert to base64
+    const encryptedBase64 = btoa(String.fromCharCode(...combined));
+    
+    return {
+      success: true,
+      encrypted: encryptedBase64
+    };
+  } catch (error) {
+    console.error("Encryption error:", error);
+    return {
+      success: false,
+      error: error.message
+    };
   }
-  
-  // Get sender's public key
-  const contactKeys = await getAllContactKeys();
-  if (!contactKeys[senderId]) {
-    throw new Error('No key for sender');
+}
+
+// Decrypt message using AES-GCM
+async function decryptMessage(encryptedBase64, sharedSecret) {
+  try {
+    // Create AES key from shared secret
+    const aesKey = await crypto.subtle.importKey(
+      "raw",
+      sharedSecret,
+      { name: "AES-GCM" },
+      false,
+      ["decrypt"]
+    );
+    
+    // Convert from base64
+    const combined = Uint8Array.from(atob(encryptedBase64), c => c.charCodeAt(0));
+    
+    // Extract IV and encrypted data
+    const iv = combined.slice(0, 12);
+    const encryptedData = combined.slice(12);
+    
+    // Decrypt
+    const decrypted = await crypto.subtle.decrypt(
+      {
+        name: "AES-GCM",
+        iv: iv
+      },
+      aesKey,
+      encryptedData
+    );
+    
+    const decodedMessage = new TextDecoder().decode(decrypted);
+    
+    return {
+      success: true,
+      decrypted: decodedMessage
+    };
+  } catch (error) {
+    console.error("Decryption error:", error);
+    return {
+      success: false,
+      error: error.message
+    };
   }
-  
-  const publicKeyBuffer = base64ToArrayBuffer(contactKeys[senderId].publicKey);
-  const publicKey = await crypto.subtle.importKey(
-    'spki',
-    publicKeyBuffer,
-    { name: 'ECDH', namedCurve: 'P-256' },
-    true,
-    []
-  );
-  
-  // Derive shared secret
-  const sharedSecret = await deriveSharedSecret(keyData.privateKey, publicKey);
-  
-  // Derive AES key
-  const aesKey = await deriveAESKey(sharedSecret);
-  
-  // Decrypt
-  const iv = base64ToArrayBuffer(encryptedData.iv);
-  const ciphertext = base64ToArrayBuffer(encryptedData.ciphertext);
-  
-  const plaintext = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv: new Uint8Array(iv) },
-    aesKey,
-    ciphertext
-  );
-  
-  const decoder = new TextDecoder();
-  return {
-    success: true,
-    message: decoder.decode(plaintext),
-    timestamp: encryptedData.timestamp
-  };
 }
 
-async function deriveSharedSecret(privateKey, publicKey) {
-  return await crypto.subtle.deriveKey(
-    { name: 'ECDH', public: publicKey },
-    privateKey,
-    { name: 'PBKDF2', hash: 'SHA-256', iterations: 100000 },
-    false,
-    ['deriveKey', 'deriveBits']
-  );
-}
-
-async function deriveAESKey(sharedSecret) {
-  // Use the shared secret directly as key material
-  const keyMaterial = await crypto.subtle.exportKey('raw', sharedSecret);
-  
-  return await crypto.subtle.importKey(
-    'raw',
-    keyMaterial,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt', 'decrypt']
-  );
-}
-
-// Utility functions
-function arrayBufferToBase64(buffer) {
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
-}
-
-function base64ToArrayBuffer(base64) {
-  const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes.buffer;
-}
-
-// Listen for tab updates to detect VK language changes
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (tab.url && tab.url.includes('vk.com')) {
-    // Try to detect VK language from URL or page
-    chrome.tabs.sendMessage(tabId, { action: 'detectLanguage' }, (response) => {
-      if (response && response.language) {
-        vkLanguage = response.language;
+// Message listener for communication with popup and content scripts
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "generateKeyPair") {
+    generateKeyPair().then(result => {
+      if (result.success) {
+        // Store keys in storage
+        browser.storage.local.set({
+          hasKeys: true,
+          publicKey: result.publicKey
+        }).then(() => {
+          // Store keyPair in a way that can be retrieved later
+          // For Firefox, we need to handle this differently
+          sendResponse(result);
+        });
+      } else {
+        sendResponse(result);
       }
     });
+    return true; // Keep channel open for async response
+  }
+  
+  if (message.action === "getKeys") {
+    browser.storage.local.get(["hasKeys", "publicKey"]).then(result => {
+      sendResponse(result);
+    });
+    return true;
+  }
+  
+  if (message.action === "encrypt") {
+    // Get private key from storage and encrypt
+    browser.storage.local.get(["privateKeyJwk"]).then(async (storage) => {
+      if (!storage.privateKeyJwk) {
+        sendResponse({ success: false, error: "No private key found" });
+        return;
+      }
+      
+      try {
+        const privateKey = await crypto.subtle.importKey(
+          "jwk",
+          JSON.parse(storage.privateKeyJwk),
+          {
+            name: "ECDH",
+            namedCurve: "P-256"
+          },
+          false,
+          ["deriveKey", "deriveBits"]
+        );
+        
+        const sharedSecret = await deriveSharedSecret(privateKey, message.contactPublicKey);
+        const encrypted = await encryptMessage(message.text, sharedSecret);
+        sendResponse(encrypted);
+      } catch (error) {
+        sendResponse({ success: false, error: error.message });
+      }
+    });
+    return true;
+  }
+  
+  if (message.action === "decrypt") {
+    browser.storage.local.get(["privateKeyJwk"]).then(async (storage) => {
+      if (!storage.privateKeyJwk) {
+        sendResponse({ success: false, error: "No private key found" });
+        return;
+      }
+      
+      try {
+        const privateKey = await crypto.subtle.importKey(
+          "jwk",
+          JSON.parse(storage.privateKeyJwk),
+          {
+            name: "ECDH",
+            namedCurve: "P-256"
+          },
+          false,
+          ["deriveKey", "deriveBits"]
+        );
+        
+        const sharedSecret = await deriveSharedSecret(privateKey, message.contactPublicKey);
+        const decrypted = await decryptMessage(message.encryptedText, sharedSecret);
+        sendResponse(decrypted);
+      } catch (error) {
+        sendResponse({ success: false, error: error.message });
+      }
+    });
+    return true;
+  }
+  
+  if (message.action === "saveContactKey") {
+    browser.storage.local.get(["contactKeys"]).then((storage) => {
+      const contactKeys = storage.contactKeys || {};
+      contactKeys[message.contactId] = {
+        name: message.name,
+        publicKey: message.publicKey
+      };
+      browser.storage.local.set({ contactKeys }).then(() => {
+        sendResponse({ success: true });
+      });
+    });
+    return true;
+  }
+  
+  if (message.action === "getContactKeys") {
+    browser.storage.local.get(["contactKeys"]).then((storage) => {
+      sendResponse(storage.contactKeys || {});
+    });
+    return true;
+  }
+  
+  if (message.action === "savePrivateKey") {
+    browser.storage.local.set({
+      privateKeyJwk: message.privateKeyJwk,
+      hasKeys: true,
+      publicKey: message.publicKey
+    }).then(() => {
+      sendResponse({ success: true });
+    });
+    return true;
+  }
+  
+  if (message.action === "setLanguage") {
+    browser.storage.local.set({ language: message.language }).then(() => {
+      sendResponse({ success: true });
+    });
+    return true;
+  }
+  
+  if (message.action === "getLanguage") {
+    browser.storage.local.get(["language"]).then((storage) => {
+      sendResponse(storage.language || "auto");
+    });
+    return true;
   }
 });
 
-console.log('VKrypt background script loaded');
+console.log("VKrypt background script loaded");
