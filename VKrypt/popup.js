@@ -1,7 +1,6 @@
 // VKrypt Popup Script
 
 let currentLanguage = 'ru';
-let translations = {};
 
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
@@ -10,7 +9,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Load language setting
   await loadLanguage();
   
-  // Apply translations
+  // Apply translations using Chrome i18n API
   applyTranslations();
   
   // Check key status
@@ -41,7 +40,9 @@ function applyTranslations() {
   const elements = document.querySelectorAll('[data-i18n]');
   elements.forEach(el => {
     const key = el.getAttribute('data-i18n');
-    const translation = getTranslation(key);
+    const translation = chrome.i18n.getMessage(key);
+    
+    if (!translation) return;
     
     if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
       if (el.hasAttribute('placeholder')) {
@@ -56,66 +57,8 @@ function applyTranslations() {
   document.documentElement.lang = currentLanguage;
 }
 
-function getTranslation(key) {
-  const translations = {
-    ru: {
-      extensionDescription: 'Сквозное шифрование для ВКонтакте',
-      statusInactive: 'Нужны ключи',
-      statusActive: 'Шифрование активно',
-      statusDisabled: 'Отключено',
-      generateKeys: 'Сгенерировать ключи',
-      yourPublicKey: 'Ваш открытый ключ:',
-      importContactKey: 'Импорт ключа контакта:',
-      contactName: 'Имя контакта:',
-      contactPublicKey: 'Открытый ключ контакта:',
-      save: 'Сохранить',
-      cancel: 'Отмена',
-      copyToClipboard: 'Копировать',
-      pasteFromClipboard: 'Вставить',
-      copied: 'Скопировано!',
-      settings: 'Настройки',
-      language: 'Язык:',
-      autoLanguage: 'Авто (как VK)',
-      russian: 'Русский',
-      english: 'English',
-      groupParticipants: 'Участники:',
-      chatDetected: 'Чат:',
-      noChatDetected: 'Чат не обнаружен',
-      personalChat: 'Личный чат',
-      groupChat: 'Групповой чат',
-      remove: 'Удалить'
-    },
-    en: {
-      extensionDescription: 'End-to-End Encryption for VKontakte',
-      statusInactive: 'Keys Needed',
-      statusActive: 'Encryption Active',
-      statusDisabled: 'Disabled',
-      generateKeys: 'Generate Keys',
-      yourPublicKey: 'Your Public Key:',
-      importContactKey: 'Import Contact Key:',
-      contactName: 'Contact Name:',
-      contactPublicKey: 'Contact Public Key:',
-      save: 'Save',
-      cancel: 'Cancel',
-      copyToClipboard: 'Copy',
-      pasteFromClipboard: 'Paste',
-      copied: 'Copied!',
-      settings: 'Settings',
-      language: 'Language:',
-      autoLanguage: 'Auto (like VK)',
-      russian: 'Русский',
-      english: 'English',
-      groupParticipants: 'Participants:',
-      chatDetected: 'Chat:',
-      noChatDetected: 'No chat detected',
-      personalChat: 'Personal Chat',
-      groupChat: 'Group Chat',
-      remove: 'Remove'
-    }
-  };
-  
-  const lang = currentLanguage || 'ru';
-  return translations[lang]?.[key] || translations.ru[key] || key;
+function t(key) {
+  return chrome.i18n.getMessage(key) || key;
 }
 
 async function checkKeyStatus() {
@@ -132,7 +75,7 @@ async function checkKeyStatus() {
     if (statusIndicator) {
       statusIndicator.className = 'status-indicator vkrypt-status-active';
       statusIcon.textContent = '✅';
-      statusText.textContent = getTranslation('statusActive');
+      statusText.textContent = t('statusActive');
     }
     
     if (keyGenerationSection) keyGenerationSection.style.display = 'none';
@@ -148,7 +91,7 @@ async function checkKeyStatus() {
     if (statusIndicator) {
       statusIndicator.className = 'status-indicator vkrypt-status-warning';
       statusIcon.textContent = '⚠️';
-      statusText.textContent = getTranslation('statusInactive');
+      statusText.textContent = t('statusInactive');
     }
     
     if (keyGenerationSection) keyGenerationSection.style.display = 'block';
@@ -167,7 +110,7 @@ async function loadContactKeys() {
   
   const keyEntries = Object.entries(keys);
   if (keyEntries.length === 0) {
-    savedKeysList.innerHTML = `<li style="color: #666677; justify-content: center;">${currentLanguage === 'en' ? 'No contacts added' : 'Контакты не добавлены'}</li>`;
+    savedKeysList.innerHTML = `<li style="color: #666677; justify-content: center;">${t('noContacts')}</li>`;
     return;
   }
   
@@ -184,7 +127,7 @@ async function loadContactKeys() {
     
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'btn btn-small btn-danger';
-    deleteBtn.textContent = getTranslation('remove');
+    deleteBtn.textContent = t('removeParticipant');
     deleteBtn.onclick = () => deleteContactKey(contactId);
     
     actionsDiv.appendChild(deleteBtn);
@@ -243,7 +186,7 @@ async function generateKeyPair() {
   const generateBtn = document.getElementById('generate-keys-btn');
   if (generateBtn) {
     generateBtn.disabled = true;
-    generateBtn.textContent = currentLanguage === 'en' ? 'Generating...' : 'Генерация...';
+    generateBtn.textContent = t('generating');
   }
   
   try {
@@ -254,15 +197,15 @@ async function generateKeyPair() {
       await checkKeyStatus();
       await loadContactKeys();
     } else {
-      alert(currentLanguage === 'en' ? 'Failed to generate keys' : 'Не удалось сгенерировать ключи');
+      alert(t('generateKeyError'));
     }
   } catch (error) {
     console.error('Key generation error:', error);
-    alert(currentLanguage === 'en' ? 'Error: ' + error.message : 'Ошибка: ' + error.message);
+    alert(t('error') + ': ' + error.message);
   } finally {
     if (generateBtn) {
       generateBtn.disabled = false;
-      generateBtn.textContent = getTranslation('generateKeys');
+      generateBtn.textContent = t('generateKeys');
     }
   }
 }
@@ -277,7 +220,7 @@ async function copyPublicKey() {
     const copyBtn = document.getElementById('copy-public-key-btn');
     if (copyBtn) {
       const originalText = copyBtn.textContent;
-      copyBtn.textContent = getTranslation('copied');
+      copyBtn.textContent = t('copied');
       copyBtn.classList.add('copy-success');
       
       setTimeout(() => {
@@ -300,7 +243,7 @@ async function pasteContactKey() {
     const text = await navigator.clipboard.readText();
     contactKeyTextarea.value = text;
   } catch (error) {
-    alert(currentLanguage === 'en' ? 'Failed to paste from clipboard' : 'Не удалось вставить из буфера обмена');
+    alert(t('pasteError'));
   }
 }
 
@@ -314,17 +257,13 @@ async function saveContactKey() {
   const contactKey = contactKeyTextarea.value.trim();
   
   if (!contactKey) {
-    alert(currentLanguage === 'en' ? 'Please enter a public key' : 'Введите открытый ключ');
+    alert(t('enterPublicKey'));
     return;
   }
   
   // Validate key format (basic check)
   if (!contactKey.startsWith('MFkw') && !contactKey.startsWith('MIIB')) {
-    const confirmSave = confirm(
-      currentLanguage === 'en' 
-        ? 'This key format looks unusual. Continue anyway?' 
-        : 'Формат ключа выглядит необычно. Продолжить?'
-    );
+    const confirmSave = confirm(t('unusualKeyFormat'));
     if (!confirmSave) return;
   }
   
@@ -349,10 +288,10 @@ async function saveContactKey() {
     // Update content script
     updateContentScript();
     
-    alert(currentLanguage === 'en' ? 'Contact key saved!' : 'Ключ контакта сохранён!');
+    alert(t('contactKeySaved'));
   } catch (error) {
     console.error('Save contact key error:', error);
-    alert(currentLanguage === 'en' ? 'Failed to save key' : 'Не удалось сохранить ключ');
+    alert(t('saveKeyError'));
   }
 }
 
@@ -381,24 +320,24 @@ async function getCurrentChatInfo() {
       
       if (response?.detected) {
         const chatType = response.isGroup 
-          ? getTranslation('groupChat') 
-          : getTranslation('personalChat');
+          ? t('groupChat') 
+          : t('personalChat');
         
         chatInfoDiv.className = 'chat-info has-chat';
         chatInfoDiv.innerHTML = `
           <strong>${response.chatId}</strong><br>
           ${chatType}
-          ${response.participants?.length > 1 ? `<br>${getTranslation('groupParticipants')} ${response.participants.length}` : ''}
+          ${response.participants?.length > 1 ? `<br>${t('groupParticipants')} ${response.participants.length}` : ''}
         `;
         return;
       }
     }
     
     chatInfoDiv.className = 'chat-info';
-    chatInfoDiv.textContent = getTranslation('noChatDetected');
+    chatInfoDiv.textContent = t('noChatDetected');
   } catch (error) {
     chatInfoDiv.className = 'chat-info';
-    chatInfoDiv.textContent = getTranslation('noChatDetected');
+    chatInfoDiv.textContent = t('noChatDetected');
   }
 }
 
