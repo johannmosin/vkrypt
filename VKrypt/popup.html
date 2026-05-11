@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,77 +7,77 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div class="vkrypt-popup">
-    <header class="vkrypt-header">
+  <div class="container">
+    <header class="header">
       <h1>🔐 VKrypt</h1>
-      <p class="vkrypt-subtitle">E2EE for VK Messages</p>
+      <p class="subtitle" data-i18n="extensionDescription">Сквозное шифрование для ВКонтакте</p>
     </header>
 
-    <main class="vkrypt-main">
-      <!-- Key Status Section -->
-      <section class="vkrypt-section">
-        <h2>Your Keys</h2>
-        <div id="key-status" class="vkrypt-status-card">
-          <div class="vkrypt-loading">Loading...</div>
+    <div id="status-section" class="section">
+      <div id="status-indicator" class="status-indicator">
+        <span class="status-icon">⚠️</span>
+        <span class="status-text" data-i18n="statusInactive">Нужны ключи</span>
+      </div>
+    </div>
+
+    <div id="key-generation-section" class="section">
+      <button id="generate-keys-btn" class="btn btn-primary" data-i18n="generateKeys">
+        Сгенерировать ключи
+      </button>
+    </div>
+
+    <div id="keys-section" class="section" style="display: none;">
+      <div class="key-info">
+        <h3 data-i18n="yourPublicKey">Ваш открытый ключ:</h3>
+        <div class="key-display">
+          <textarea id="public-key-textarea" readonly></textarea>
+          <div class="key-actions">
+            <button id="copy-public-key-btn" class="btn btn-small" data-i18n="copyToClipboard">Копировать</button>
+          </div>
         </div>
-        
-        <button id="generate-keys-btn" class="vkrypt-btn vkrypt-btn-primary" style="display: none;">
-          🔑 Generate Key Pair
-        </button>
-      </section>
+      </div>
 
-      <!-- Current Chat Status -->
-      <section class="vkrypt-section">
-        <h2>Current Chat</h2>
-        <div id="chat-status" class="vkrypt-status-card">
-          <div class="vkrypt-loading">Detecting chat...</div>
+      <div class="contact-key-section">
+        <h3 data-i18n="importContactKey">Импорт ключа контакта:</h3>
+        <div class="form-group">
+          <label data-i18n="contactName">Имя контакта:</label>
+          <input type="text" id="contact-name-input" placeholder="Имя или ID">
         </div>
-        
-        <button id="key-exchange-btn" class="vkrypt-btn" style="display: none;">
-          🔄 Exchange Keys
-        </button>
-      </section>
+        <div class="form-group">
+          <label data-i18n="contactPublicKey">Открытый ключ контакта:</label>
+          <textarea id="contact-key-textarea" placeholder="Вставьте открытый ключ контакта"></textarea>
+          <button id="paste-contact-key-btn" class="btn btn-small btn-secondary" data-i18n="pasteFromClipboard">Вставить</button>
+        </div>
+        <button id="save-contact-key-btn" class="btn btn-primary" data-i18n="save">Сохранить</button>
+      </div>
 
-      <!-- Group Management -->
-      <section class="vkrypt-section" id="group-section" style="display: none;">
-        <h2>Group Keys</h2>
-        <p class="vkrypt-hint">Manage keys for group members</p>
-        <div id="group-members" class="vkrypt-group-list"></div>
-        <button id="add-member-btn" class="vkrypt-btn vkrypt-btn-small">
-          ➕ Add Member
-        </button>
-      </section>
+      <div id="saved-keys-section" class="saved-keys">
+        <h3 data-i18n="groupParticipants">Участники:</h3>
+        <ul id="saved-keys-list"></ul>
+      </div>
+    </div>
 
-      <!-- Settings -->
-      <section class="vkrypt-section">
-        <h2>Settings</h2>
-        <label class="vkrypt-setting">
-          <input type="checkbox" id="auto-encrypt" checked>
-          <span>Auto-encrypt when key available</span>
-        </label>
-        <label class="vkrypt-setting">
-          <input type="checkbox" id="show-markers" checked>
-          <span>Show encryption markers</span>
-        </label>
-      </section>
+    <div id="settings-section" class="section">
+      <h3 data-i18n="settings">Настройки</h3>
+      <div class="form-group">
+        <label data-i18n="language">Язык:</label>
+        <select id="language-select">
+          <option value="auto" data-i18n="autoLanguage">Авто (как VK)</option>
+          <option value="ru" data-i18n="russian">Русский</option>
+          <option value="en" data-i18n="english">English</option>
+        </select>
+      </div>
+    </div>
 
-      <!-- Info -->
-      <section class="vkrypt-section vkrypt-info">
-        <h3>ℹ️ How it works</h3>
-        <ol>
-          <li>Generate your key pair</li>
-          <li>Share your public key with contacts (outside VK)</li>
-          <li>Add their public keys to enable encryption</li>
-          <li>Messages are encrypted with AES-256-GCM</li>
-        </ol>
-        <p class="vkrypt-warning">
-          ⚠️ Keep your private key secure! Never share it.
-        </p>
-      </section>
-    </main>
+    <div id="current-chat-section" class="section">
+      <h3 data-i18n="chatDetected">Чат:</h3>
+      <div id="current-chat-info" class="chat-info">
+        <span data-i18n="noChatDetected">Чат не обнаружен</span>
+      </div>
+    </div>
 
-    <footer class="vkrypt-footer">
-      <span>VKrypt v1.0.0</span>
+    <footer class="footer">
+      <p>VKrypt v1.0 • E2EE для ВКонтакте</p>
     </footer>
   </div>
 

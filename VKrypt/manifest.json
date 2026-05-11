@@ -1,29 +1,22 @@
 {
   "manifest_version": 3,
   "name": "VKrypt",
-  "version": "1.0.0",
-  "description": "End-to-end encryption for VK messages with external key exchange",
+  "version": "1.0",
+  "description": "__MSG_extensionDescription__",
+  "default_locale": "ru",
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "scripting"
   ],
   "host_permissions": [
-    "*://vk.com/*",
-    "*://*.vk.com/*"
+    "https://vk.com/*"
   ],
   "background": {
     "scripts": ["background.js"]
   },
-  "content_scripts": [
-    {
-      "matches": ["*://vk.com/*", "*://*.vk.com/*"],
-      "js": ["content.js"],
-      "css": ["styles.css"]
-    }
-  ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "VKrypt - E2EE for VK",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",
@@ -31,6 +24,14 @@
       "128": "icons/icon128.png"
     }
   },
+  "content_scripts": [
+    {
+      "matches": ["https://vk.com/im*"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -39,11 +40,11 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "vkrypt@extension",
+      "id": "vkrypt@vkrypt.local",
       "strict_min_version": "109.0"
     },
     "gecko_android": {
-      "strict_min_version": "109.0"
+      "strict_min_version": "113.0"
     }
   }
 }
