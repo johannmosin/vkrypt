@@ -1,36 +1,174 @@
 {
-  "extensionDescription": "VKrypt - End-to-End Encryption for VKontakte",
-  "extensionName": "VKrypt",
-  "statusActive": "🔒 Encryption Active",
-  "statusInactive": "⚠️ Keys Needed",
-  "statusDisabled": "🔓 Disabled",
-  "generateKeys": "Generate Keys",
-  "exportPublicKey": "Export Public Key",
-  "importContactKey": "Import Contact Key",
-  "yourPublicKey": "Your Public Key:",
-  "contactPublicKey": "Contact Public Key:",
-  "contactName": "Contact Name:",
-  "save": "Save",
-  "cancel": "Cancel",
-  "keysReady": "✅ Keys Ready",
-  "keysNotGenerated": "❌ Keys Not Generated",
-  "copyToClipboard": "Copy",
-  "copied": "Copied!",
-  "pasteFromClipboard": "Paste",
-  "encryptedMessage": "🔒 Encrypted",
-  "unencryptedMessage": "📄 Plain Message",
-  "sendEncrypted": "Send Encrypted",
-  "encryptionToggle": "Encryption",
-  "settings": "Settings",
-  "language": "Language",
-  "autoLanguage": "Auto (like VK)",
-  "russian": "Русский",
-  "english": "English",
-  "groupParticipants": "Group Participants:",
-  "addParticipant": "Add Participant",
-  "removeParticipant": "Remove",
-  "noChatDetected": "No chat detected",
-  "chatDetected": "Chat: ",
-  "personalChat": "Personal Chat",
-  "groupChat": "Group Chat"
+  "extensionDescription": {
+    "message": "VKrypt - End-to-End Encryption for VKontakte",
+    "description": "Extension description"
+  },
+  "extensionName": {
+    "message": "VKrypt",
+    "description": "Extension name"
+  },
+  "statusActive": {
+    "message": "🔒 Encryption Active",
+    "description": "Status when encryption is active"
+  },
+  "statusInactive": {
+    "message": "⚠️ Keys Needed",
+    "description": "Status when keys are needed"
+  },
+  "statusDisabled": {
+    "message": "🔓 Disabled",
+    "description": "Status when encryption is disabled"
+  },
+  "generateKeys": {
+    "message": "Generate Keys",
+    "description": "Button to generate keys"
+  },
+  "generating": {
+    "message": "Generating...",
+    "description": "Key generation status"
+  },
+  "generateKeyError": {
+    "message": "Failed to generate keys",
+    "description": "Key generation error"
+  },
+  "error": {
+    "message": "Error",
+    "description": "General error"
+  },
+  "exportPublicKey": {
+    "message": "Export Public Key",
+    "description": "Button to export public key"
+  },
+  "importContactKey": {
+    "message": "Import Contact Key",
+    "description": "Button to import contact key"
+  },
+  "yourPublicKey": {
+    "message": "Your Public Key:",
+    "description": "Label for your public key"
+  },
+  "contactPublicKey": {
+    "message": "Contact Public Key:",
+    "description": "Label for contact public key"
+  },
+  "contactName": {
+    "message": "Contact Name:",
+    "description": "Label for contact name"
+  },
+  "save": {
+    "message": "Save",
+    "description": "Save button"
+  },
+  "cancel": {
+    "message": "Cancel",
+    "description": "Cancel button"
+  },
+  "keysReady": {
+    "message": "✅ Keys Ready",
+    "description": "Status when keys are ready"
+  },
+  "keysNotGenerated": {
+    "message": "❌ Keys Not Generated",
+    "description": "Status when keys are not generated"
+  },
+  "copyToClipboard": {
+    "message": "Copy",
+    "description": "Copy button"
+  },
+  "copied": {
+    "message": "Copied!",
+    "description": "Copied notification"
+  },
+  "pasteFromClipboard": {
+    "message": "Paste",
+    "description": "Paste button"
+  },
+  "pasteError": {
+    "message": "Failed to paste from clipboard",
+    "description": "Paste error"
+  },
+  "enterPublicKey": {
+    "message": "Please enter a public key",
+    "description": "Enter public key prompt"
+  },
+  "unusualKeyFormat": {
+    "message": "This key format looks unusual. Continue anyway?",
+    "description": "Unusual key format warning"
+  },
+  "contactKeySaved": {
+    "message": "Contact key saved!",
+    "description": "Contact key saved successfully"
+  },
+  "saveKeyError": {
+    "message": "Failed to save key",
+    "description": "Save key error"
+  },
+  "noContacts": {
+    "message": "No contacts added",
+    "description": "No contacts"
+  },
+  "encryptedMessage": {
+    "message": "🔒 Encrypted",
+    "description": "Encrypted message label"
+  },
+  "unencryptedMessage": {
+    "message": "📄 Plain Message",
+    "description": "Plain message label"
+  },
+  "sendEncrypted": {
+    "message": "Send Encrypted",
+    "description": "Send encrypted button"
+  },
+  "encryptionToggle": {
+    "message": "Encryption",
+    "description": "Encryption toggle"
+  },
+  "settings": {
+    "message": "Settings",
+    "description": "Settings section"
+  },
+  "language": {
+    "message": "Language",
+    "description": "Language setting"
+  },
+  "autoLanguage": {
+    "message": "Auto (like VK)",
+    "description": "Automatic language selection"
+  },
+  "russian": {
+    "message": "Русский",
+    "description": "Russian language"
+  },
+  "english": {
+    "message": "English",
+    "description": "English language"
+  },
+  "groupParticipants": {
+    "message": "Group Participants:",
+    "description": "Group participants list"
+  },
+  "addParticipant": {
+    "message": "Add Participant",
+    "description": "Add participant button"
+  },
+  "removeParticipant": {
+    "message": "Remove",
+    "description": "Remove participant button"
+  },
+  "noChatDetected": {
+    "message": "No chat detected",
+    "description": "Status when no chat is detected"
+  },
+  "chatDetected": {
+    "message": "Chat: ",
+    "description": "Detected chat label"
+  },
+  "personalChat": {
+    "message": "Personal Chat",
+    "description": "Personal chat type"
+  },
+  "groupChat": {
+    "message": "Group Chat",
+    "description": "Group chat type"
+  }
 }
